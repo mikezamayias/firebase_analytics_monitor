@@ -23,4 +23,13 @@ const int troubleshootingTimeoutSeconds = 12;
 const int statsDisplayIntervalSeconds = 30;
 
 /// Suggestions display interval in minutes
-const int suggestionsDisplayIntervalMinutes = 2;
+const int suggestionsDisplayIntervalMinutes = 5;
+
+/// Default logcat tags to monitor when not in verbose mode.
+const List<String> defaultLogcatTags = [
+  'FA',
+  'FA-SVC',
+  'FA-Ads',
+  'FirebaseCrashlytics',
+  'Crashlytics',
+];

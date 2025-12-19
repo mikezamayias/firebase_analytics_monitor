@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:args/command_runner.dart';
+import 'package:firebase_analytics_monitor/src/constants.dart';
 import 'package:firebase_analytics_monitor/src/services/event_formatter_service.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
@@ -150,21 +151,15 @@ class MonitorCommand extends Command<int> {
       // FA/Crashlytics tags
       final args = <String>['adb', 'logcat', '-v', 'time'];
       if (!verbose) {
-        args.addAll([
-          '-s',
-          'FA',
-          'FA-SVC',
-          'FA-Ads',
-          'FirebaseCrashlytics',
-          'Crashlytics',
-        ]);
+        args
+          ..add('-s')
+          ..addAll(defaultLogcatTags);
       }
       final process = await _processManager.start(args);
 
       // If nothing shows up for a while, guide the user
-      // Using inline value (12 seconds) to allow const Duration
       var sawRelevantLine = false;
-      Timer(const Duration(seconds: 12), () {
+      Timer(Duration(seconds: troubleshootingTimeoutSeconds), () {
         if (!sawRelevantLine) {
           _logger
             ..warn('No Firebase Analytics/Crashlytics logs detected yet...')
@@ -183,21 +178,19 @@ class MonitorCommand extends Command<int> {
       });
 
       // Setup periodic stats display if requested
-      // Using inline value (30 seconds) to allow const Duration
       Timer? statsTimer;
       if (showStats) {
         statsTimer = Timer.periodic(
-          const Duration(seconds: 30),
+          Duration(seconds: statsDisplayIntervalSeconds),
           (_) => _showSessionStats(),
         );
       }
 
       // Setup suggestions display if requested
-      // Using inline value (5 minutes) to allow const Duration
       Timer? suggestionsTimer;
       if (showSuggestions) {
         suggestionsTimer = Timer.periodic(
-          const Duration(minutes: 5),
+          Duration(minutes: suggestionsDisplayIntervalMinutes),
           (_) => _showSmartSuggestions(),
         );
       }
