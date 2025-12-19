@@ -1,0 +1,7 @@
+targets:
+  $default:
+    builders:
+      isar_generator:isar_generator:
+        enabled: true
+        options:
+          build_extensions: { ".dart": [".g.dart"] }

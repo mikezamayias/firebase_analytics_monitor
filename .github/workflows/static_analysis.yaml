@@ -1,0 +1,68 @@
+name: Static Analysis
+
+on:
+  pull_request:
+    branches:
+      - dev
+    paths:
+      - "lib/**"
+      - "bin/**"
+      - "test/**"
+      - "pubspec.yaml"
+      - "analysis_options.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: 🔍 Dart Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v4
+
+      - name: 🎯 Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "stable"
+
+      - name: 📦 Install Dependencies
+        run: dart pub get
+
+      - name: 🔍 Analyze
+        run: dart analyze --fatal-infos
+
+  format:
+    name: 📝 Dart Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v4
+
+      - name: 🎯 Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "stable"
+
+      - name: 📝 Format Check
+        run: dart format --set-exit-if-changed .
+
+  test:
+    name: 🧪 Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v4
+
+      - name: 🎯 Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "stable"
+
+      - name: 📦 Install Dependencies
+        run: dart pub get
+
+      - name: 🧪 Run Tests
+        run: dart test
