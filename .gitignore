@@ -22,7 +22,10 @@ coverage/
 *.config.dart
 *.freezed.dart
 
-# Binary files
+# Binary files (local only, do not commit)
 *.dylib
 *.so
 *.dll
+
+# Local Isar native library
+libisar.dylib
