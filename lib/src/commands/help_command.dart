@@ -86,7 +86,7 @@ class HelpCommand extends Command<int> {
       ..info('')
       ..info(
         'For more information, visit: '
-        'https://github.com/mzamagias/firebase_analytics_monitor',
+        'https://github.com/mikezamayias/firebase_analytics_monitor',
       );
   }
 }

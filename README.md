@@ -35,7 +35,7 @@ dart pub global activate --source=path <path to this package>
 ### From Source
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/mikezamayias/firebase_analytics_monitor.git
 cd firebase_analytics_monitor
 dart pub get
 dart compile exe bin/famon.dart -o famon
@@ -247,7 +247,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 ### Development Setup
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/mikezamayias/firebase_analytics_monitor.git
 cd firebase_analytics_monitor
 dart pub get
 dart pub run build_runner build  # Generate model files
@@ -261,18 +261,15 @@ dart test --coverage=coverage      # Run with coverage
 dart pub run test                  # Alternative test command
 ```
 
-````text
+To view the generated coverage report you can use [lcov](https://github.com/linux-test-project/lcov):
 
-To view the generated coverage report you can use [lcov](https://github.com/linux-test-project/lcov)
-.
-
-```sh
+```bash
 # Generate Coverage Report
-$ genhtml coverage/lcov.info -o coverage/
+genhtml coverage/lcov.info -o coverage/
 
 # Open Coverage Report
-$ open coverage/index.html
-````
+open coverage/index.html
+```
 
 ---
 
