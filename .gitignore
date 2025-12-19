@@ -26,3 +26,4 @@ coverage/
 *.dylib
 *.so
 *.dll
+libisar.dylib
