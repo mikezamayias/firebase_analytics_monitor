@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:firebase_analytics_monitor/src/shared/log_timestamp_parser.dart';
 
 /// Core domain entity representing a Firebase Analytics event
 ///
@@ -17,30 +16,6 @@ class AnalyticsEvent extends Equatable {
     this.manualParameters = const {},
     this.isFiltered = false,
   });
-
-  /// Create from parsed logcat output
-  ///
-  /// Generates a unique ID and parses the timestamp string to DateTime.
-  factory AnalyticsEvent.fromParsedLog({
-    required String rawTimestamp,
-    required String eventName,
-    Map<String, String> parameters = const {},
-    List<Map<String, String>> items = const [],
-  }) {
-    final parsedTimestamp =
-        parseLogcatTimestamp(rawTimestamp) ?? DateTime.now();
-    final uniqueId = '${parsedTimestamp.toIso8601String()}_${eventName}_'
-        '${DateTime.now().microsecondsSinceEpoch}';
-
-    return AnalyticsEvent(
-      id: uniqueId,
-      timestamp: parsedTimestamp,
-      rawTimestamp: rawTimestamp,
-      eventName: eventName,
-      parameters: parameters,
-      items: items,
-    );
-  }
 
   /// Create from JSON for export/import
   factory AnalyticsEvent.fromJson(Map<String, dynamic> json) {

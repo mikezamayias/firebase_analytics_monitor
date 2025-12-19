@@ -1,3 +1,4 @@
+import 'package:firebase_analytics_monitor/src/core/application/services/analytics_event_factory.dart';
 import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
 import 'package:injectable/injectable.dart';
@@ -9,10 +10,17 @@ class LogParserService implements LogParserInterface {
   /// Creates a new LogParserService
   ///
   /// [logger] - Optional logger for reporting parsing errors
-  LogParserService({Logger? logger}) : _logger = logger;
+  LogParserService({
+    Logger? logger,
+    AnalyticsEventFactory? eventFactory,
+  })  : _logger = logger,
+        _eventFactory = eventFactory ?? const AnalyticsEventFactory();
 
   /// The logger instance used for reporting parsing errors.
   final Logger? _logger;
+
+  /// Factory used to create [AnalyticsEvent] instances from parsed log data.
+  final AnalyticsEventFactory _eventFactory;
 
   /// Regex patterns for different Firebase Analytics log formats
   static final List<RegExp> _logPatterns = [
@@ -95,7 +103,7 @@ class LogParserService implements LogParserInterface {
     final params = _parseParams(paramsString);
     final items = _parseItems(paramsString);
 
-    return AnalyticsEvent.fromParsedLog(
+    return _eventFactory.fromParsedLog(
       rawTimestamp: timestamp,
       eventName: eventName,
       parameters: params,
@@ -109,7 +117,7 @@ class LogParserService implements LogParserInterface {
     final paramName = match.group(2)!.trim();
     final paramValue = match.group(3)!.trim();
 
-    return AnalyticsEvent.fromParsedLog(
+    return _eventFactory.fromParsedLog(
       rawTimestamp: timestamp,
       eventName: 'fa_invalid_default_param',
       parameters: {paramName: _cleanValue(paramValue)},

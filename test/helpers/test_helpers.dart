@@ -2,6 +2,7 @@ import 'package:firebase_analytics_monitor/src/commands/commands.dart';
 import 'package:firebase_analytics_monitor/src/core/application/services/event_filter_service.dart';
 import 'package:firebase_analytics_monitor/src/core/application/use_cases/export_data_use_case.dart';
 import 'package:firebase_analytics_monitor/src/core/application/use_cases/import_data_use_case.dart';
+import 'package:firebase_analytics_monitor/src/core/application/services/analytics_event_factory.dart';
 import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
 import 'package:firebase_analytics_monitor/src/core/domain/repositories/data_export_repository.dart';
 import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart';
@@ -44,7 +45,8 @@ AnalyticsEvent createMockAnalyticsEvent({
   Map<String, String>? parameters,
   List<Map<String, String>>? items,
 }) {
-  return AnalyticsEvent.fromParsedLog(
+  const factory = AnalyticsEventFactory();
+  return factory.fromParsedLog(
     eventName: eventName,
     rawTimestamp: rawTimestamp,
     parameters: parameters ?? const {},

@@ -1,4 +1,4 @@
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
+import 'package:firebase_analytics_monitor/src/core/application/services/analytics_event_factory.dart';
 import 'package:firebase_analytics_monitor/src/services/event_formatter_service.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
@@ -7,6 +7,8 @@ import 'package:test/test.dart';
 class MockLogger extends Mock implements Logger {}
 
 void main() {
+  const factory = AnalyticsEventFactory();
+
   group('EventFormatterService', () {
     late MockLogger logger;
     late EventFormatterService formatter;
@@ -18,7 +20,7 @@ void main() {
     });
 
     test('prints header and all parameters without filtering', () {
-      final event = AnalyticsEvent.fromParsedLog(
+      final event = factory.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'add_shipping_info',
         parameters: const {
@@ -39,7 +41,7 @@ void main() {
     });
 
     test('includes item details alongside event parameters', () {
-      final event = AnalyticsEvent.fromParsedLog(
+      final event = factory.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'add_shipping_info',
         parameters: const {
@@ -65,7 +67,7 @@ void main() {
     test('supports raw output mode without labels', () {
       final rawFormatter =
           EventFormatterService(logger, rawOutput: true, colorEnabled: false);
-      final event = AnalyticsEvent.fromParsedLog(
+      final event = factory.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'screen_view',
         parameters: const {'ga_session_id': '123'},
