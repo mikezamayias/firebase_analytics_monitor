@@ -52,7 +52,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
       - name: Prepare package copy
         run: cp -R packages/famon_core "${{ runner.temp }}/famon_core"
       - name: Install dependencies
@@ -73,7 +73,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
       - name: Wait for pub.dev to index famon_core
         env:
           GIT_REF: ${{ github.ref }}

@@ -24,10 +24,10 @@ on:
 
 jobs:
   semantic-pull-request:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d  # v1.19.2
 
   build:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d  # v1.19.2
     with:
       dart_sdk: "3.11.0"
       setup: "dart run build_runner build --delete-conflicting-outputs"
@@ -35,7 +35,7 @@ jobs:
 
   build-core:
     name: Analyze + format + test (famon_core)
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d  # v1.19.2
     with:
       dart_sdk: "3.11.0"
       working_directory: packages/famon_core
@@ -43,7 +43,7 @@ jobs:
       min_coverage: 0  # famon_core has near-zero coverage today; raise once real tests land
 
   spell-check:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d  # v1.19.2
     with:
       includes: |
         **/*.md
@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: 🎯 Setup Dart
-        uses: dart-lang/setup-dart@v1
+        uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
         with:
           sdk: "3.11.0"
 
@@ -80,7 +80,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: 🎯 Setup Dart
-        uses: dart-lang/setup-dart@v1
+        uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
         with:
           sdk: "3.11.0"
 
@@ -117,7 +117,7 @@ jobs:
             --report-on=packages/famon_core/lib
 
       - name: 📤 Upload CLI Coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354  # v6.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
@@ -125,7 +125,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: 📤 Upload Core Coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354  # v6.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov-core.info
