@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
@@ -307,8 +308,16 @@ class IsarDataExportRepository implements DataExportRepository {
       return data.containsKey('version') &&
           data.containsKey('exportTimestamp') &&
           data.containsKey('data');
-    } on Object catch (e) {
-      stderr.writeln('backup file validation failed ($filePath): $e');
+    } on Object catch (e, stack) {
+      // Library code: route diagnostics through dart:developer rather than
+      // writing to stderr so embedding apps (CLI, GUI, server) can capture
+      // or suppress the output via observability tooling.
+      developer.log(
+        'backup file validation failed ($filePath): $e',
+        name: 'famon_core.IsarDataExportRepository',
+        error: e,
+        stackTrace: stack,
+      );
       return false;
     }
   }

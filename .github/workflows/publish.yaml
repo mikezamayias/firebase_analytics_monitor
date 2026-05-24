@@ -28,9 +28,27 @@ jobs:
         id: parse
         env:
           GIT_REF: ${{ github.ref }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          TAG="${GIT_REF#refs/tags/}"
+
+          # workflow_dispatch runs land here with a branch ref (e.g.
+          # refs/heads/dev), not a tag. We cannot derive a package or
+          # version from a branch — bail clearly so operators know to
+          # push a tag instead.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "::error::workflow_dispatch is not supported. Push a famon-v*, famon_core-v*, or v* tag instead so the publish workflow can derive package + version."
+            exit 1
+          fi
+
+          case "$GIT_REF" in
+            refs/tags/*) TAG="${GIT_REF#refs/tags/}" ;;
+            *)
+              echo "::error::Expected refs/tags/* ref, got: $GIT_REF"
+              exit 1
+              ;;
+          esac
+
           case "$TAG" in
             famon-v*)
               pkg="famon"
@@ -68,6 +86,11 @@ jobs:
 
           read_pubspec() { grep "^version:" "$1" | sed 's/version: //' | tr -d ' '; }
           read_dart_const() { grep "packageVersion" "$1" | sed "s/.*= '\([^']*\)'.*/\1/"; }
+          read_core_dep() {
+            grep -E "^[[:space:]]+famon_core:\s*\^" pubspec.yaml \
+              | sed "s/.*famon_core:[[:space:]]*\^//" \
+              | tr -d ' '
+          }
 
           fail=0
           check_match() {
@@ -91,9 +114,13 @@ jobs:
               check_match "packages/famon_core/pubspec.yaml" "$(read_pubspec packages/famon_core/pubspec.yaml)" "$VER"
               ;;
             both)
+              # Legacy synchronized-bump mode (tag v*). Both packages
+              # carry the same version AND the root pubspec's famon_core
+              # constraint must point at the same version.
               check_match "pubspec.yaml" "$(read_pubspec pubspec.yaml)" "$VER"
               check_match "packages/famon_core/pubspec.yaml" "$(read_pubspec packages/famon_core/pubspec.yaml)" "$VER"
               check_match "lib/src/version.dart" "$(read_dart_const lib/src/version.dart)" "$VER"
+              check_match "pubspec.yaml famon_core: ^X.Y.Z" "$(read_core_dep)" "$VER"
               ;;
           esac
 

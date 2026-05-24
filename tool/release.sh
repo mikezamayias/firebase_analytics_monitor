@@ -109,6 +109,10 @@ case "$PACKAGE" in
     ;;
 esac
 
+# Refresh origin/main right before the SHA compare so the "dev == main"
+# shortcut can't be tricked by a fetch that happened minutes earlier.
+git fetch origin +refs/heads/main:refs/remotes/origin/main
+
 # Re-use an existing open release PR if one is already there.
 PR_NUMBER="$(gh pr list \
   --base main --head dev \
