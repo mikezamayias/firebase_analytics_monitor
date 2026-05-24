@@ -33,7 +33,8 @@ class ClipboardService implements ClipboardInterface {
         return _copyWindows(text);
       }
       return false;
-    } on Exception catch (_) {
+    } on Exception catch (e) {
+      stderr.writeln('clipboard copy failed: $e');
       return false;
     }
   }
@@ -49,7 +50,8 @@ class ClipboardService implements ClipboardInterface {
         return _pasteWindows();
       }
       return null;
-    } on Exception catch (_) {
+    } on Exception catch (e) {
+      stderr.writeln('clipboard paste failed: $e');
       return null;
     }
   }

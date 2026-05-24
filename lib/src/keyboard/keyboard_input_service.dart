@@ -76,8 +76,14 @@ class KeyboardInputService implements KeyboardInputInterface {
       try {
         stdin.lineMode = _originalLineMode;
         stdin.echoMode = _originalEchoMode;
-      } on StdinException catch (_) {
-        // Terminal might be gone, ignore
+      } on StdinException catch (e) {
+        // Terminal might be gone (e.g. SIGHUP). stderr may also be closed,
+        // so guard the diagnostic write to keep dispose() infallible.
+        try {
+          stderr.writeln('keyboard restore failed (terminal gone?): $e');
+        } on StdinException {
+          // truly nothing to do
+        }
       }
     }
 

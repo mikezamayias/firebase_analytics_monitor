@@ -307,7 +307,8 @@ class IsarDataExportRepository implements DataExportRepository {
       return data.containsKey('version') &&
           data.containsKey('exportTimestamp') &&
           data.containsKey('data');
-    } on Object catch (_) {
+    } on Object catch (e) {
+      stderr.writeln('backup file validation failed ($filePath): $e');
       return false;
     }
   }
