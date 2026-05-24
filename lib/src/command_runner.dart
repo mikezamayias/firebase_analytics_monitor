@@ -150,8 +150,8 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
             'Run ${lightCyan.wrap('$executableName update')} to update',
           );
       }
-    } on Exception catch (_) {
-      _logger.err('Failed to check for updates.');
+    } on Exception catch (e) {
+      _logger.err('Failed to check for updates: $e');
     }
   }
 }

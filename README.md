@@ -222,8 +222,8 @@ open coverage/index.html
 
 [pub_badge]: https://img.shields.io/pub/v/famon.svg
 [pub_link]: https://pub.dev/packages/famon
-[coverage_badge]: https://codecov.io/gh/mikezamayias/famon/branch/main/graph/badge.svg
-[coverage_link]: https://codecov.io/gh/mikezamayias/famon
+[coverage_badge]: https://codecov.io/gh/mikezamayias/famon/branch/dev/graph/badge.svg
+[coverage_link]: https://codecov.io/gh/mikezamayias/famon/branch/dev
 [license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license_link]: https://opensource.org/licenses/MIT
 [very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg

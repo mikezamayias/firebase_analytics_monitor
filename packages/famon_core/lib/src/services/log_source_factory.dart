@@ -88,7 +88,8 @@ class LogSourceFactory {
                 line.trim().isNotEmpty &&
                 (line.contains('device') || line.contains('emulator')),
           );
-    } on ProcessException {
+    } on ProcessException catch (e) {
+      _logger.detail('adb probe failed (no Android device available): $e');
       return false;
     }
   }
@@ -105,7 +106,8 @@ class LogSourceFactory {
 
       final output = result.stdout as String;
       return output.contains('(Booted)');
-    } on ProcessException {
+    } on ProcessException catch (e) {
+      _logger.detail('xcrun simctl probe failed (no iOS Simulator): $e');
       return false;
     }
   }
@@ -117,7 +119,8 @@ class LogSourceFactory {
 
       final output = result.stdout as String;
       return output.trim().isNotEmpty;
-    } on ProcessException {
+    } on ProcessException catch (e) {
+      _logger.detail('idevice_id probe failed (no physical iOS device): $e');
       return false;
     }
   }

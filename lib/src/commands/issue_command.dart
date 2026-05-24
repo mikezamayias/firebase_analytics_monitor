@@ -87,8 +87,8 @@ class IssueCommand extends Command<int> {
     try {
       info['path'] = Platform.environment['PATH'] ?? 'N/A';
       info['shell'] = Platform.environment['SHELL'] ?? 'N/A';
-    } on Exception catch (_) {
-      // Ignore if we can't get environment info
+    } on Exception catch (e) {
+      _logger.detail('Could not read environment info for issue report: $e');
     }
 
     return info;
@@ -101,8 +101,8 @@ class IssueCommand extends Command<int> {
       if (result.exitCode == 0) {
         return result.stdout.toString().trim();
       }
-    } on Exception catch (_) {
-      // Ignore errors
+    } on Exception catch (e) {
+      _logger.detail('Could not invoke `dart --version`: $e');
     }
     return 'Unknown';
   }
@@ -339,7 +339,8 @@ class IssueCommand extends Command<int> {
 
       final result = await _processManager.run([command, ...args]);
       return result.exitCode == 0;
-    } on Exception catch (_) {
+    } on Exception catch (e) {
+      _logger.detail('Could not launch browser: $e');
       return false;
     }
   }

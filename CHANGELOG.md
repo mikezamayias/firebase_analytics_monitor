@@ -1,8 +1,73 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to the `famon` CLI will be documented in this file.
+Library-side changes live in
+[`packages/famon_core/CHANGELOG.md`](packages/famon_core/CHANGELOG.md).
 
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## Versioning policy
+
+`famon` (CLI) and `famon_core` (library) version on independent tracks since
+2026-05-24. From this version forward, tags use the form `famon-v<version>`
+and `famon_core-v<version>` (e.g. `famon-v1.5.1`). Legacy `v<version>` tags
+remain in history.
+
+Default release type is **PATCH**. **MINOR** requires a user-visible new
+feature. **MAJOR** requires a documented breaking change (CLI flag removal,
+output-format change, or runtime behavior change).
+
+## [Unreleased]
+
+<!-- Add entries under: ### Added / Changed / Deprecated / Removed / Fixed / Security -->
+
+## [1.5.1] - 2026-05-24
+
+First release on the decoupled tag scheme — this version tags as
+`famon-v1.5.1` (legacy `v*` tags are no longer produced). `famon_core`
+moved on its own track at the same time; see
+[`packages/famon_core/CHANGELOG.md`](packages/famon_core/CHANGELOG.md)
+for library changes.
+
+### Fixed
+
+- Replaced 9 silent `catch (_)` swallows with logged failures (project
+  rule: every catch must log or rethrow with context). Affected:
+  `ClipboardService.copy` / `paste`,
+  `FileDialogService.showSaveDialog`,
+  `IssueCommand._getSystemInfo` / `_getDartVersion` /
+  `_openBrowserWithCommand`,
+  `FamonCommandRunner._checkForUpdates`,
+  `KeyboardInputService.stop`,
+  `ShortcutsConfigLoader.loadCustomBindings`.
+- Coverage badge now points at the `dev` branch (was `main`, which
+  meant the README showed a stale or missing badge for unreleased
+  work).
+
+### Security
+
+- `.pubignore`: added explicit `firebase-debug.log` entry (defense in
+  depth — `*.log` already matches, but the explicit name documents
+  intent and survives future ignore-pattern edits).
+
+### Changed
+
+- `tool/update_version.dart` now requires `--package famon | famon_core
+  | both`. The previous always-update-both behavior is reachable via
+  `--package both` and remains useful for synchronized bumps.
+- `tool/release.sh` now requires `<package> <version>` and produces
+  per-package tags (`famon-v*`, `famon_core-v*`). Legacy `v*` tag flow
+  remains supported by the publish workflow for one release cycle so
+  in-flight reverts still work.
+- `.github/workflows/publish.yaml`: dispatches per-package publish jobs
+  based on tag prefix. Famon CLI only waits for `famon_core` to be
+  indexed on pub.dev when both packages publish in the same workflow
+  run (legacy single-tag mode).
+- `CHANGELOG.md` (this file): added `[Unreleased]` placeholder section
+  and versioning-policy block. Library entries now live in
+  `packages/famon_core/CHANGELOG.md` exclusively from this version
+  onward.
 
 ## [1.5.0](https://github.com/mikezamayias/famon/compare/v1.4.1...v1.5.0) (2026-05-17)
 

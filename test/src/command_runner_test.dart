@@ -77,7 +77,12 @@ void main() {
       ).thenThrow(Exception('Failed to check for updates'));
 
       await commandRunner.run(['--version']);
-      verify(() => logger.err('Failed to check for updates.')).called(1);
+      verify(
+        () => logger.err(
+          'Failed to check for updates: '
+          'Exception: Failed to check for updates',
+        ),
+      ).called(1);
     });
 
     test(

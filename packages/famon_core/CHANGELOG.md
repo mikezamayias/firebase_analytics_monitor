@@ -1,8 +1,55 @@
 # Changelog
 
-All notable changes to this package will be documented in this file.
+All notable changes to the `famon_core` library will be documented in this
+file. CLI-side changes live in the root [`CHANGELOG.md`](../../CHANGELOG.md).
 
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## Versioning policy
+
+`famon_core` (library) and `famon` (CLI) version on independent tracks since
+2026-05-24. From this version forward, tags use the form
+`famon_core-v<version>` (e.g. `famon_core-v1.5.1`). Legacy `v<version>` tags
+remain in history.
+
+Default release type is **PATCH**. **MINOR** requires a new public symbol.
+**MAJOR** requires removing/renaming a public symbol or changing the
+behavior of an exported API. `famon_core 1.x` is the legacy/experimental
+track — all planned breaking changes are batched into `famon_core 2.0.0`.
+
+## [Unreleased]
+
+<!-- Add entries under: ### Added / Changed / Deprecated / Removed / Fixed / Security -->
+
+## [1.5.1] - 2026-05-24
+
+First release on the decoupled tag scheme — this version tags as
+`famon_core-v1.5.1` (legacy `v*` tags are no longer produced). `famon`
+(CLI) moved on its own track at the same time; see the root
+[`CHANGELOG.md`](../../CHANGELOG.md) for CLI changes.
+
+### Fixed
+
+- Replaced 4 silent error swallows in `famon_core` with logged
+  failures (project rule: every catch must log or rethrow with
+  context). Affected: `IsarDataExportRepository.validateBackupFile`,
+  and the three device-detection helpers in `LogSourceFactory`
+  (`_hasAndroidDevices`, `_hasBootedSimulator`, `_hasIosDevice` — each
+  now logs a `detail` line on probe failure so verbose runs can
+  distinguish "device absent" from "tool missing or misconfigured").
+
+### Security
+
+- `.pubignore`: added `*.log` and explicit `firebase-debug.log` so
+  Firebase OAuth metadata from local development never ships in the
+  pub.dev archive.
+
+### Changed
+
+- `CHANGELOG.md` (this file): added `[Unreleased]` placeholder and
+  versioning-policy block. CLI-side entries now live in the root
+  `CHANGELOG.md` exclusively from this version onward.
 
 ## [1.5.0](https://github.com/mikezamayias/famon/compare/v1.4.1...v1.5.0) (2026-05-17)
 

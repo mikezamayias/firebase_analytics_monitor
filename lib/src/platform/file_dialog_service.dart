@@ -42,8 +42,8 @@ class FileDialogService implements FileDialogInterface {
       }
       // Fallback to terminal prompt
       return promptForPath(defaultFileName: defaultFileName);
-    } on Exception catch (_) {
-      // Fallback to terminal prompt
+    } on Exception catch (e) {
+      _logger?.detail('Native file dialog failed; using terminal prompt: $e');
       return promptForPath(defaultFileName: defaultFileName);
     }
   }
