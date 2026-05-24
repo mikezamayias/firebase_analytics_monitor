@@ -102,39 +102,6 @@ for library changes.
 * remove orphaned publish workflow and fix spell-check ([d6cf9cd](https://github.com/mikezamayias/famon/commit/d6cf9cd25c593efe207461fca0a23934c068b071))
 * restore pub.dev publish pipeline for monorepo ([39d4a66](https://github.com/mikezamayias/famon/commit/39d4a664fcae2855a71c32cbf14e77385e5c8a7a))
 
-## [1.5.0](https://github.com/mikezamayias/famon/compare/v1.4.1...v1.5.0) (2026-05-17)
-
-### Changed
-
-- Refactored `monitor` and `filter` commands to share a single stream-processing pipeline (`MonitoringPipeline`, now part of `famon_core`). Behavior is preserved; per-line cost stays flat.
-
-### Fixed
-
-- `monitor` no longer crashes with `StateError: Stream has already been listened to` on child-process startup. `process.stderr` was being drained twice (outer command setup plus the new pipeline); the outer drain is gone.
-- `famon filter --limit N` no longer hangs after the limit is reached. The adb child process is now killed when the pipeline exits early.
-
-### Removed
-
-- Internal: unreachable `HelpCommand`. It was exported from `lib/src/commands/commands.dart` but never registered on `FamonCommandRunner`, so the visible CLI surface is unchanged.
-
-### Internal
-
-- Widened the `injectable` constraint to `>=2.3.5 <4.0.0` so consumers on injectable 3.x are no longer blocked. Local solver still resolves to 2.7.x because `isar_generator` pins `source_gen ^1.2.2`; the concrete 3.x bump arrives with the Isar → Drift migration.
-- CI: removed the `|| true` that was swallowing failed `famon_core` test runs, and tightened the Codacy gate so the pipeline file is re-indexed against `dev` without exclusions.
-
-## [1.4.1](https://github.com/mikezamayias/famon/compare/v1.4.0...v1.4.1) (2026-05-07)
-
-
-### Bug Fixes
-
-* address review findings on release-flow PR ([f21549f](https://github.com/mikezamayias/famon/commit/f21549fd56a1ded3753fc42e664c0b409845a12e))
-* address review-toolkit findings on release-please PR ([fb10cba](https://github.com/mikezamayias/famon/commit/fb10cba3637cf9472c7f52bc5b0c38c3af7b7c78))
-* address review-toolkit findings on release-please tuning PR ([eb97341](https://github.com/mikezamayias/famon/commit/eb97341b58e8d6c8b8011d4a5b5af88dd9ef9957))
-* **ci:** tune release-please config to bound history and link versions ([691ccc8](https://github.com/mikezamayias/famon/commit/691ccc8444540bc618e65a3d24024c15282cfc92))
-* harden update_version.dart for atomicity and major-bump safety ([d4b17fe](https://github.com/mikezamayias/famon/commit/d4b17fe3feb21b0d5296cffe023ee5524e8a1a66))
-* remove orphaned publish workflow and fix spell-check ([d6cf9cd](https://github.com/mikezamayias/famon/commit/d6cf9cd25c593efe207461fca0a23934c068b071))
-* restore pub.dev publish pipeline for monorepo ([39d4a66](https://github.com/mikezamayias/famon/commit/39d4a664fcae2855a71c32cbf14e77385e5c8a7a))
-
 ## [1.4.0] - 2026-04-27
 
 ### Added
