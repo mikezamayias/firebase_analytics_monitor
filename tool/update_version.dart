@@ -23,6 +23,8 @@ const _validPackages = {'famon', 'famon_core', 'both'};
 ///                              `famon_core: ^X.Y.Z` constraint in root pubspec
 ///                              (legacy synchronized-bump mode)
 ///
+/// Pass `--dry-run` to validate without writing any file.
+///
 /// All updates are validated up front and applied atomically: if any source
 /// cannot be located or rewritten, no file is mutated.
 ///
@@ -30,13 +32,14 @@ const _validPackages = {'famon', 'famon_core', 'both'};
 ///   dart run tool/update_version.dart --package famon       1.5.1
 ///   dart run tool/update_version.dart --package famon_core  1.5.1
 ///   dart run tool/update_version.dart --package both        1.5.1
+///   dart run tool/update_version.dart --package famon --dry-run 1.5.1
 void main(List<String> args) {
   final parsed = _parseArgs(args);
   if (parsed == null) {
     _printUsage();
     exit(1);
   }
-  final (package, version) = parsed;
+  final (package, version, dryRun) = parsed;
 
   // SemVer 2.0: prerelease and build metadata allow [0-9A-Za-z.-].
   // The legacy `\w` (which included `_` and disallowed `-`) accepted some
@@ -60,6 +63,14 @@ void main(List<String> args) {
       print('Error: $error');
       exit(1);
     }
+  }
+
+  if (dryRun) {
+    print('Dry run — preflight succeeded. No files modified.');
+    for (final update in updates) {
+      print('  Would update ${update.path} → version $version');
+    }
+    return;
   }
 
   // Phase 2 — apply writes. If write N throws after writes 1..N-1 succeeded,
@@ -91,9 +102,10 @@ void main(List<String> args) {
   print('Remember to update $changelog with changes.');
 }
 
-(String, String)? _parseArgs(List<String> args) {
+(String, String, bool)? _parseArgs(List<String> args) {
   String? package;
   String? version;
+  var dryRun = false;
 
   for (var i = 0; i < args.length; i++) {
     final a = args[i];
@@ -102,6 +114,8 @@ void main(List<String> args) {
       package = args[++i];
     } else if (a.startsWith('--package=')) {
       package = a.substring('--package='.length);
+    } else if (a == '--dry-run') {
+      dryRun = true;
     } else if (a == '--help' || a == '-h') {
       return null;
     } else if (!a.startsWith('-')) {
@@ -114,7 +128,7 @@ void main(List<String> args) {
 
   if (package == null || version == null) return null;
   if (!_validPackages.contains(package)) return null;
-  return (package, version);
+  return (package, version, dryRun);
 }
 
 void _printUsage() {
@@ -123,6 +137,10 @@ void _printUsage() {
   print('  --package famon       Bump famon CLI only');
   print('  --package famon_core  Bump famon_core library only');
   print('  --package both        Bump both in lockstep (legacy)');
+  print(
+    '  --dry-run             Validate + report planned writes; '
+    'touch nothing',
+  );
   print('');
   print('Example: dart run tool/update_version.dart --package famon 1.5.1');
 }
