@@ -4,13 +4,22 @@
 # request, waits for the required CI checks to pass, merges the PR
 # with the "merge" method so dev's commits become ancestors of main,
 # then tags the resulting merge commit on main. The tag push triggers
-# .github/workflows/publish.yaml, which publishes both packages to
-# pub.dev.
+# .github/workflows/publish.yaml, which publishes the corresponding
+# package to pub.dev.
+#
+# Per-package versioning (decoupled since 2026-05-24):
+#
+#   tool/release.sh famon       1.5.1   → tag famon-v1.5.1
+#   tool/release.sh famon_core  1.5.1   → tag famon_core-v1.5.1
+#
+# Tag-format migration: legacy `v<version>` tags (pre-decoupling) stay
+# in history but are no longer produced. The publish workflow matches
+# `famon-v*` and `famon_core-v*` from this release onward.
 #
 # Why a PR and not a direct push?
 #
 # The "Protect main" repository ruleset requires a pull request, with
-# the same six required status checks every regular contribution must
+# the same required status checks every regular contribution must
 # pass. Direct pushes are rejected for everyone, including admins —
 # the release flow earns its merge the same way every other change
 # does. Trusted-publishing OIDC still authenticates the publish jobs
@@ -18,18 +27,27 @@
 #
 # Prerequisites:
 # - `gh` CLI is installed and authenticated for this repository.
-# - The release-prep PR (`chore(release): X.Y.Z`) has already merged
-#   into `dev` so the version sources and changelogs sit at the tip
-#   of `dev`.
+# - The release-prep PR (`chore(release): <pkg> X.Y.Z`) has already
+#   merged into `dev` so the version sources and changelog sit at the
+#   tip of `dev`.
 
 set -euo pipefail
 
-VERSION="${1:-}"
+PACKAGE="${1:-}"
+VERSION="${2:-}"
 
-if [[ -z "$VERSION" ]]; then
-  echo "Usage: $0 <version>" >&2
+if [[ -z "$PACKAGE" || -z "$VERSION" ]]; then
+  echo "Usage: $0 <famon|famon_core> <version>" >&2
+  echo "Example: $0 famon 1.5.1" >&2
   exit 1
 fi
+
+case "$PACKAGE" in
+  famon|famon_core) ;;
+  *) echo "Unknown package: $PACKAGE (expected: famon | famon_core)" >&2; exit 1 ;;
+esac
+
+TAG="${PACKAGE}-v${VERSION}"
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "Working tree not clean. Commit or stash changes before releasing." >&2
@@ -60,57 +78,78 @@ if [[ "$(git rev-parse dev)" != "$(git rev-parse origin/dev)" ]]; then
   exit 1
 fi
 
-if ! grep -qF "version: $VERSION" pubspec.yaml; then
-  echo "pubspec.yaml version is not set to $VERSION" >&2
-  exit 1
-fi
-
-if ! grep -qF "famon_core: ^$VERSION" pubspec.yaml; then
-  echo "pubspec.yaml famon_core constraint is not ^$VERSION" >&2
-  echo "Run: dart run tool/update_version.dart $VERSION" >&2
-  exit 1
-fi
-
-if ! grep -qF "version: $VERSION" packages/famon_core/pubspec.yaml; then
-  echo "packages/famon_core/pubspec.yaml version is not set to $VERSION" >&2
-  echo "Run: dart run tool/update_version.dart $VERSION" >&2
-  exit 1
-fi
-
-if ! grep -qF "## [$VERSION]" CHANGELOG.md; then
-  echo "CHANGELOG.md does not contain a section for $VERSION" >&2
-  exit 1
-fi
-
-if ! grep -qF "## [$VERSION]" packages/famon_core/CHANGELOG.md; then
-  echo "packages/famon_core/CHANGELOG.md does not contain a section for $VERSION" >&2
-  exit 1
-fi
-
-if ! grep -qF "const packageVersion = '$VERSION';" lib/src/version.dart; then
-  echo "lib/src/version.dart does not contain version $VERSION" >&2
-  echo "Expected: const packageVersion = '$VERSION';" >&2
-  echo "Run: dart run tool/update_version.dart $VERSION" >&2
-  exit 1
-fi
+# Per-package preflight: only verify sources that the package actually owns.
+case "$PACKAGE" in
+  famon)
+    if ! grep -qF "version: $VERSION" pubspec.yaml; then
+      echo "pubspec.yaml version is not set to $VERSION" >&2
+      echo "Run: dart run tool/update_version.dart --package famon $VERSION" >&2
+      exit 1
+    fi
+    if ! grep -qF "const packageVersion = '$VERSION';" lib/src/version.dart; then
+      echo "lib/src/version.dart does not contain version $VERSION" >&2
+      echo "Run: dart run tool/update_version.dart --package famon $VERSION" >&2
+      exit 1
+    fi
+    if ! grep -qF "## [$VERSION]" CHANGELOG.md; then
+      echo "CHANGELOG.md does not contain a section for $VERSION" >&2
+      exit 1
+    fi
+    ;;
+  famon_core)
+    if ! grep -qF "version: $VERSION" packages/famon_core/pubspec.yaml; then
+      echo "packages/famon_core/pubspec.yaml version is not set to $VERSION" >&2
+      echo "Run: dart run tool/update_version.dart --package famon_core $VERSION" >&2
+      exit 1
+    fi
+    if ! grep -qF "## [$VERSION]" packages/famon_core/CHANGELOG.md; then
+      echo "packages/famon_core/CHANGELOG.md does not contain a section for $VERSION" >&2
+      exit 1
+    fi
+    ;;
+esac
 
 # Re-use an existing open release PR if one is already there.
 PR_NUMBER="$(gh pr list \
   --base main --head dev \
   --state open --json number --jq '.[0].number // empty')"
 
+# Skip PR creation if dev == main (e.g. a prior package release already
+# merged dev → main and no new commits arrived since). Tag directly.
+DEV_SHA="$(git rev-parse dev)"
+MAIN_SHA="$(git rev-parse origin/main)"
+
+if [[ -z "$PR_NUMBER" && "$DEV_SHA" == "$MAIN_SHA" ]]; then
+  echo "dev is already at main ($DEV_SHA). Skipping PR — tagging directly."
+  git checkout main
+  git pull --ff-only origin main
+  git tag -a "$TAG" -m "Release $PACKAGE $VERSION"
+  git push origin "$TAG"
+  echo
+  echo "Tagged $TAG at $(git rev-parse main)."
+  echo "Tag pushed. .github/workflows/publish.yaml will publish $PACKAGE."
+  exit 0
+fi
+
 if [[ -z "$PR_NUMBER" ]]; then
-  PR_URL="$(gh pr create \
+  if ! PR_URL="$(gh pr create \
     --base main --head dev \
-    --title "chore(release): $VERSION → main" \
-    --body $'Automated release-sync PR opened by `tool/release.sh '"$VERSION"$'`.\n\nMerges `dev` into `main` so the next `v'"$VERSION"$'` tag points at the resulting merge commit. The tag push triggers `.github/workflows/publish.yaml`, which publishes both packages to pub.dev via OIDC trusted publishing.\n\nUse **Create a merge commit** when merging this PR — `tool/release.sh` requests it explicitly. Squash would lose dev\'s commit ancestry on main and reintroduce the divergence this PR-based flow is designed to fix.')"
+    --title "chore(release): $PACKAGE $VERSION → main" \
+    --body $'Automated release-sync PR opened by `tool/release.sh '"$PACKAGE $VERSION"$'`.\n\nMerges `dev` into `main` so the next `'"$TAG"$'` tag points at the resulting merge commit. The tag push triggers `.github/workflows/publish.yaml`, which publishes `'"$PACKAGE"$'` to pub.dev via OIDC trusted publishing.\n\nUse **Create a merge commit** when merging this PR — `tool/release.sh` requests it explicitly. Squash would lose dev\'s commit ancestry on main and reintroduce the divergence this PR-based flow is designed to fix.' 2>&1)"; then
+    echo "gh pr create failed:" >&2
+    echo "$PR_URL" >&2
+    exit 1
+  fi
   PR_NUMBER="${PR_URL##*/}"
 fi
 
 echo "Release PR: #$PR_NUMBER"
 echo "Waiting for required CI checks…"
 
-gh pr checks "$PR_NUMBER" --watch --required
+if ! gh pr checks "$PR_NUMBER" --watch --required; then
+  echo "Required checks did not pass for PR #$PR_NUMBER." >&2
+  exit 1
+fi
 
 STATE="$(gh pr view "$PR_NUMBER" \
   --json mergeStateStatus,mergeable \
@@ -121,20 +160,34 @@ if [[ "$STATE" != "CLEAN/MERGEABLE" ]]; then
   exit 1
 fi
 
-gh pr merge "$PR_NUMBER" --merge
+if ! gh pr merge "$PR_NUMBER" --merge; then
+  echo "gh pr merge failed for PR #$PR_NUMBER." >&2
+  exit 1
+fi
 
 git checkout main
 git pull --ff-only origin main
 
-if ! grep -qF "version: $VERSION" pubspec.yaml; then
-  echo "After merge, pubspec.yaml on main does not say version $VERSION." >&2
-  echo "Inspect the merged result and re-run with a fresh tag if needed." >&2
-  exit 1
-fi
+# Post-merge sanity: confirm the version the package owns actually reached main.
+case "$PACKAGE" in
+  famon)
+    if ! grep -qF "version: $VERSION" pubspec.yaml; then
+      echo "After merge, pubspec.yaml on main does not say version $VERSION." >&2
+      echo "Inspect the merged result and re-run with a fresh tag if needed." >&2
+      exit 1
+    fi
+    ;;
+  famon_core)
+    if ! grep -qF "version: $VERSION" packages/famon_core/pubspec.yaml; then
+      echo "After merge, packages/famon_core/pubspec.yaml on main does not say version $VERSION." >&2
+      exit 1
+    fi
+    ;;
+esac
 
-git tag -a "v$VERSION" -m "Release $VERSION"
-git push origin "v$VERSION"
+git tag -a "$TAG" -m "Release $PACKAGE $VERSION"
+git push origin "$TAG"
 
 echo
-echo "Tagged v$VERSION at $(git rev-parse main)."
-echo "Tag pushed. .github/workflows/publish.yaml will publish both packages."
+echo "Tagged $TAG at $(git rev-parse main)."
+echo "Tag pushed. .github/workflows/publish.yaml will publish $PACKAGE."
