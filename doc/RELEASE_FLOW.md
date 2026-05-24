@@ -130,6 +130,8 @@ The helper is **PR-based**. It opens (or reuses) a `dev → main` pull request, 
 
 If you use the **Manual Release** GitHub Actions workflow instead of running `tool/release.sh` locally, the workflow dispatches `publish.yaml` and `github-release.yaml` explicitly after creating the tag. This is required because tags pushed by `GITHUB_TOKEN` do not trigger follow-up `push` workflows.
 
+If you use the **Manual Release** GitHub Actions workflow instead of running `tool/release.sh` locally, the workflow dispatches `publish.yaml` and `github-release.yaml` explicitly after creating the tag. This is required because tags pushed by `GITHUB_TOKEN` do not trigger follow-up `push` workflows.
+
 ## Automated publish workflow
 
 Tag pushes trigger two independent workflows in parallel:
