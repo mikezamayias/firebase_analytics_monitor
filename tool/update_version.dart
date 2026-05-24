@@ -145,17 +145,17 @@ List<_FileUpdate> _buildUpdates(String package, String version) {
 
   return switch (package) {
     'famon' => [
-      _FileUpdate('pubspec.yaml', [rootVersion]),
-      _FileUpdate('lib/src/version.dart', [dartConst]),
-    ],
+        _FileUpdate('pubspec.yaml', [rootVersion]),
+        _FileUpdate('lib/src/version.dart', [dartConst]),
+      ],
     'famon_core' => [
-      _FileUpdate('packages/famon_core/pubspec.yaml', [coreVersion]),
-    ],
+        _FileUpdate('packages/famon_core/pubspec.yaml', [coreVersion]),
+      ],
     'both' => [
-      _FileUpdate('pubspec.yaml', [rootVersion, coreDep]),
-      _FileUpdate('packages/famon_core/pubspec.yaml', [coreVersion]),
-      _FileUpdate('lib/src/version.dart', [dartConst]),
-    ],
+        _FileUpdate('pubspec.yaml', [rootVersion, coreDep]),
+        _FileUpdate('packages/famon_core/pubspec.yaml', [coreVersion]),
+        _FileUpdate('lib/src/version.dart', [dartConst]),
+      ],
     _ => throw StateError('unreachable: package=$package'),
   };
 }
