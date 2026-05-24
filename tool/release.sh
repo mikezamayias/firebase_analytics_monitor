@@ -52,9 +52,9 @@ esac
 # first, but validating at the release-script boundary keeps shell-metachar
 # inputs (paths, accidental quotes, copy/paste typos) from reaching git tag
 # / gh pr create where they'd produce surprising tag names or PR bodies.
-if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$ ]]; then
+if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
   echo "Invalid VERSION format: $VERSION" >&2
-  echo "Expected: x.y.z (e.g. 1.5.1, 1.5.1-beta.1, 1.5.1+build.42)" >&2
+  echo "Expected SemVer 2.0: x.y.z (e.g. 1.5.1, 1.5.1-beta.1, 1.5.1-rc-1, 1.5.1+build.42)" >&2
   exit 1
 fi
 

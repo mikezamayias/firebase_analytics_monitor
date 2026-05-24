@@ -38,10 +38,16 @@ void main(List<String> args) {
   }
   final (package, version) = parsed;
 
-  final versionRegex = RegExp(r'^\d+\.\d+\.\d+(-[\w.]+)?(\+[\w.]+)?$');
+  // SemVer 2.0: prerelease and build metadata allow [0-9A-Za-z.-].
+  // The legacy `\w` (which included `_` and disallowed `-`) accepted some
+  // non-SemVer strings and rejected valid ones like 1.5.1-rc-1.
+  final versionRegex =
+      RegExp(r'^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$');
   if (!versionRegex.hasMatch(version)) {
     print('Error: Invalid version format: $version');
-    print('Expected format: x.y.z (e.g., 1.5.1 or 1.5.1-beta.1)');
+    print(
+      'Expected SemVer 2.0: x.y.z (e.g. 1.5.1, 1.5.1-rc-1, 1.5.1+build.42)',
+    );
     exit(1);
   }
 
