@@ -83,7 +83,14 @@ if ! git show-ref --verify --quiet refs/heads/main; then
 fi
 
 git checkout dev
-git pull --ff-only origin dev
+# Use `git merge` against the already-fetched ref rather than `git pull`.
+# `git pull --ff-only origin dev` fails with "Cannot fast-forward to multiple
+# branches" when the prior multi-ref fetch (dev + main + --tags) leaves
+# FETCH_HEAD with several merge candidates and pull tries to FF all of them.
+if ! git merge --ff-only origin/dev; then
+  echo "Failed to fast-forward local 'dev' to origin/dev. Reconcile and re-run." >&2
+  exit 1
+fi
 if [[ "$(git rev-parse dev)" != "$(git rev-parse origin/dev)" ]]; then
   echo "Local 'dev' is not exactly at origin/dev. Reconcile/push dev before releasing." >&2
   exit 1
@@ -137,7 +144,10 @@ MAIN_SHA="$(git rev-parse origin/main)"
 if [[ -z "$PR_NUMBER" && "$DEV_SHA" == "$MAIN_SHA" ]]; then
   echo "dev is already at main ($DEV_SHA). Skipping PR — tagging directly."
   git checkout main
-  git pull --ff-only origin main
+  if ! git merge --ff-only origin/main; then
+    echo "Failed to fast-forward local 'main' to origin/main before direct tag." >&2
+    exit 1
+  fi
   git tag -a "$TAG" -m "Release $PACKAGE $VERSION"
   git push origin "$TAG"
   echo
@@ -181,7 +191,11 @@ if ! gh pr merge "$PR_NUMBER" --merge; then
 fi
 
 git checkout main
-git pull --ff-only origin main
+git fetch origin +refs/heads/main:refs/remotes/origin/main
+if ! git merge --ff-only origin/main; then
+  echo "Failed to fast-forward local 'main' to origin/main after PR merge. Tag aborted." >&2
+  exit 1
+fi
 
 # Post-merge sanity: confirm the version the package owns actually reached main.
 case "$PACKAGE" in
