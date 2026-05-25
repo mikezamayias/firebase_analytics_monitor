@@ -32,8 +32,10 @@ class ShortcutsConfigLoader {
     try {
       final content = await configFile.readAsString();
       return _parseConfig(content);
-    } on Exception catch (_) {
-      // Return empty map on parse errors (fall back to defaults)
+    } on Exception catch (e) {
+      stderr
+        ..writeln('shortcuts config parse failed ($configPath): $e')
+        ..writeln('Falling back to default key bindings.');
       return {};
     }
   }
