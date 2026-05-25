@@ -372,7 +372,4 @@ void dispose() {
 ## Related Documentation
 
 - `doc/RELEASE_FLOW.md` - Release process
-- `doc/IOS_SUPPORT_PLAN.md` - iOS support implementation plan
-- `doc/KEYBOARD_SHORTCUTS_PLAN.md` - Planned keyboard shortcuts feature
-- `doc/PERFORMANCE_AUDIT_PLAN.md` - Performance audit findings
 - `doc/SECURITY_AUDIT.md` - Security audit findings and recommendations
