@@ -249,8 +249,7 @@ class LogParserService implements LogParserInterface {
     final timestamp = match.group(1)!;
     // GA4 debug logcat appends internal shortcodes: "screen_view(_vs)",
     // "user_engagement(_e)", etc. Strip before validation.
-    final eventName =
-        match.group(2)!.replaceFirst(RegExp(r'\(_[a-zA-Z]+\)$'), '');
+    final eventName = _stripGa4DebugShortcode(match.group(2)!);
 
     if (!_isValidEventName(eventName)) {
       _logger?.warn('Skipping invalid Firebase event name: "$eventName"');
@@ -268,6 +267,20 @@ class LogParserService implements LogParserInterface {
       parameters: params,
       items: items,
     );
+  }
+
+  static String _stripGa4DebugShortcode(String eventName) {
+    final shortcodeStart = eventName.lastIndexOf('(_');
+    if (shortcodeStart <= 0 || !eventName.endsWith(')')) return eventName;
+
+    for (var i = shortcodeStart + 2; i < eventName.length - 1; i++) {
+      final codeUnit = eventName.codeUnitAt(i);
+      final isAsciiLetter = (codeUnit >= 65 && codeUnit <= 90) ||
+          (codeUnit >= 97 && codeUnit <= 122);
+      if (!isAsciiLetter) return eventName;
+    }
+
+    return eventName.substring(0, shortcodeStart);
   }
 
   /// Create a synthetic AnalyticsEvent for FA invalid default param warnings

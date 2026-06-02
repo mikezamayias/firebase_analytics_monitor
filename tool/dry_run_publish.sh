@@ -5,14 +5,14 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TMP="${TMPDIR:-/tmp}/famon_core_publish_$$"
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/famon_core_publish.XXXXXX")"
 
 cleanup() {
   rm -rf "$TMP"
 }
 trap cleanup EXIT
 
-cp -R "$ROOT/packages/famon_core" "$TMP"
+cp -R "$ROOT/packages/famon_core/." "$TMP"
 (
   cd "$TMP"
   dart pub get

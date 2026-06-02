@@ -103,13 +103,15 @@ class IosLogParserService implements LogParserInterface {
     // Example: [FirebaseAnalytics][I-ACS023072] Event logged. Event name,
     // event params: purchase, { ... }
     RegExp(
-      r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\..*:\s*(\w+)(?:\s*\([^)]*\))?,?\s*\{(.*)\}',
+      r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\.\s*Event name,\s*event params:\s*(\w+)(?:\s*\([^)]*\))?,?\s*\{(.*)\}',
       multiLine: true,
       dotAll: true,
     ),
 
     // Pattern 3b: Event logged confirmation format without params block
-    RegExp(r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\..*:\s*(\w+)'),
+    RegExp(
+      r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\.\s*Event name,\s*event params:\s*(\w+)(?:\s*\([^)]*\))?(?:,|$)',
+    ),
 
     // Pattern 4: FIRAnalytics format (alternative Firebase Analytics logging)
     // Example: FIRAnalytics: Logging event: purchase
@@ -126,7 +128,7 @@ class IosLogParserService implements LogParserInterface {
 
     // Pattern 6: xcrun simctl log stream compact format
     // Compact log output may omit some formatting
-    RegExp(r'FirebaseAnalytics.*event[:\s]+(\w+)', caseSensitive: false),
+    RegExp(r'FirebaseAnalytics.*\bevent:\s*(\w+)', caseSensitive: false),
   ];
 
   /// Pre-compiled regex patterns for iOS parameter parsing.

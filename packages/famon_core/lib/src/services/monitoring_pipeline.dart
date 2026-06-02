@@ -92,8 +92,19 @@ class MonitoringPipeline {
   static bool _startsIosEventBlock(String line) =>
       _iosEventBlockStartPattern.hasMatch(line);
 
-  /// Returns true when [line] closes a multi-line iOS Analytics event block.
-  static bool _endsIosEventBlock(String line) => line.trim() == '}';
+  /// Returns the net curly-brace delta for [line].
+  static int _iosEventBlockBraceDelta(String line) {
+    var delta = 0;
+    for (var i = 0; i < line.length; i++) {
+      final codeUnit = line.codeUnitAt(i);
+      if (codeUnit == 123) {
+        delta++;
+      } else if (codeUnit == 125) {
+        delta--;
+      }
+    }
+    return delta;
+  }
 
   /// Consume [stdout] line-by-line and emit a [LogEventProcessResult]
   /// to [onResult] for every parsed event and (when [verbose] is on)
@@ -122,6 +133,7 @@ class MonitoringPipeline {
 
     var iosEventBlock = StringBuffer();
     var bufferingIosEventBlock = false;
+    var iosEventBlockDepth = 0;
 
     Future<bool> emitLine(String line) async {
       // Verbose: surface the raw line for Firebase chatter independent
@@ -161,12 +173,25 @@ class MonitoringPipeline {
       }
 
       if (bufferingIosEventBlock) {
+        if (_startsIosEventBlock(line)) {
+          final keepGoing =
+              await emitLine(iosEventBlock.toString().trimRight());
+          if (!keepGoing) return;
+          iosEventBlock
+            ..clear()
+            ..writeln(line);
+          iosEventBlockDepth = _iosEventBlockBraceDelta(line);
+          continue;
+        }
+
         iosEventBlock.writeln(line);
-        if (_endsIosEventBlock(line)) {
+        iosEventBlockDepth += _iosEventBlockBraceDelta(line);
+        if (iosEventBlockDepth <= 0) {
           final keepGoing =
               await emitLine(iosEventBlock.toString().trimRight());
           iosEventBlock = StringBuffer();
           bufferingIosEventBlock = false;
+          iosEventBlockDepth = 0;
           if (!keepGoing) return;
         }
         continue;
@@ -177,6 +202,7 @@ class MonitoringPipeline {
           ..clear()
           ..writeln(line);
         bufferingIosEventBlock = true;
+        iosEventBlockDepth = _iosEventBlockBraceDelta(line);
         continue;
       }
 

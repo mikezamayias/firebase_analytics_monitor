@@ -61,6 +61,14 @@ void main() {
       expect(result?.parameters['string'], equals('string'));
     });
 
+    test('does not parse incomplete event logged header as name event', () {
+      const logLine =
+          '[FirebaseAnalytics][I-ACS023072] Event logged. Event name, '
+          'event params:';
+
+      expect(parser.parse(logLine), isNull);
+    });
+
     test('should parse simple iOS log format without params block', () {
       const logLine = '[FirebaseAnalytics][I-ACS023051] Logging event: app, '
           'add_to_cart';
