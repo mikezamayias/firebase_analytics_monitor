@@ -247,7 +247,10 @@ class LogParserService implements LogParserInterface {
   /// dropping malformed or potentially malicious log lines.
   AnalyticsEvent? _createAnalyticsEvent(RegExpMatch match) {
     final timestamp = match.group(1)!;
-    final eventName = match.group(2)!;
+    // GA4 debug logcat appends internal shortcodes: "screen_view(_vs)",
+    // "user_engagement(_e)", etc. Strip before validation.
+    final eventName =
+        match.group(2)!.replaceFirst(RegExp(r'\(_[a-zA-Z]+\)$'), '');
 
     if (!_isValidEventName(eventName)) {
       _logger?.warn('Skipping invalid Firebase event name: "$eventName"');

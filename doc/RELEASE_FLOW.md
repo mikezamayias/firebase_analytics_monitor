@@ -81,11 +81,12 @@ Per the project's branching protocol, every push runs format, analyzer (with `--
 dart format --set-exit-if-changed .
 dart analyze --fatal-warnings
 dart test
-(cd packages/famon_core && dart pub publish --dry-run)
-dart pub publish --dry-run
+./tool/dry_run_publish.sh
 ```
 
 The dry-runs should report zero warnings. A `dependency_overrides` hint is expected on the root `famon` package — it carries the local `path: packages/famon_core` override, which pub strips from the published pubspec but warns about during dry-run.
+
+`famon_core` must be dry-run from a temp copy of `packages/famon_core` (see `tool/dry_run_publish.sh` and `pr_publish_check.yaml`): the root `.pubignore` excludes `packages/` so `dart pub publish --dry-run` inside the monorepo path is not valid for the library.
 
 ### 4. Commit, push the release branch, open the PR
 

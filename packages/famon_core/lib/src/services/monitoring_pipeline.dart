@@ -78,6 +78,23 @@ class MonitoringPipeline {
   static bool isFirebaseRelatedLogLine(String line) =>
       _firebaseRelatedPattern.hasMatch(line);
 
+  /// Matches the first line of a multi-line iOS Firebase Analytics event.
+  ///
+  /// `log stream --style compact` prints the event header and then emits each
+  /// parameter on its own indented line until a closing `}`. Buffering those
+  /// lines keeps the parser from emitting name-only events.
+  static final RegExp _iosEventBlockStartPattern = RegExp(
+    r'\[FirebaseAnalytics\]\[I-ACS\d+\].*'
+    r'(Logging event:|Event logged\.).*\{\s*$',
+  );
+
+  /// Returns true when [line] starts a multi-line iOS Analytics event block.
+  static bool _startsIosEventBlock(String line) =>
+      _iosEventBlockStartPattern.hasMatch(line);
+
+  /// Returns true when [line] closes a multi-line iOS Analytics event block.
+  static bool _endsIosEventBlock(String line) => line.trim() == '}';
+
   /// Consume [stdout] line-by-line and emit a [LogEventProcessResult]
   /// to [onResult] for every parsed event and (when [verbose] is on)
   /// every raw Firebase Analytics / Crashlytics chatter line.
@@ -103,6 +120,29 @@ class MonitoringPipeline {
     var malformedByteCount = 0;
     var lastMalformedWarning = DateTime.now();
 
+    var iosEventBlock = StringBuffer();
+    var bufferingIosEventBlock = false;
+
+    Future<bool> emitLine(String line) async {
+      // Verbose: surface the raw line for Firebase chatter independent
+      // of whether the same line also parses to an event below.
+      if (verbose && isFirebaseRelatedLogLine(line)) {
+        final keepGoing = await onResult(LogVerboseResult(line));
+        if (!keepGoing) return false;
+      }
+
+      // Parse only; filtering, caching, and display are caller
+      // concerns (see class-level dartdoc).
+      final eventResult = processor.processLine(line);
+
+      if (eventResult is LogEventResult) {
+        final keepGoing = await onResult(eventResult);
+        if (!keepGoing) return false;
+      }
+
+      return true;
+    }
+
     await for (final line in stdout
         .transform(const Utf8Decoder(allowMalformed: true))
         .transform(const LineSplitter())) {
@@ -120,21 +160,33 @@ class MonitoringPipeline {
         }
       }
 
-      // Verbose: surface the raw line for Firebase chatter independent
-      // of whether the same line also parses to an event below.
-      if (verbose && isFirebaseRelatedLogLine(line)) {
-        final keepGoing = await onResult(LogVerboseResult(line));
-        if (!keepGoing) return;
+      if (bufferingIosEventBlock) {
+        iosEventBlock.writeln(line);
+        if (_endsIosEventBlock(line)) {
+          final keepGoing =
+              await emitLine(iosEventBlock.toString().trimRight());
+          iosEventBlock = StringBuffer();
+          bufferingIosEventBlock = false;
+          if (!keepGoing) return;
+        }
+        continue;
       }
 
-      // Parse only; filtering, caching, and display are caller
-      // concerns (see class-level dartdoc).
-      final eventResult = processor.processLine(line);
-
-      if (eventResult is LogEventResult) {
-        final keepGoing = await onResult(eventResult);
-        if (!keepGoing) return;
+      if (_startsIosEventBlock(line)) {
+        iosEventBlock
+          ..clear()
+          ..writeln(line);
+        bufferingIosEventBlock = true;
+        continue;
       }
+
+      if (!await emitLine(line)) {
+        return;
+      }
+    }
+
+    if (bufferingIosEventBlock) {
+      await emitLine(iosEventBlock.toString().trimRight());
     }
   }
 }
