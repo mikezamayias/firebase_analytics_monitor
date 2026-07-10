@@ -1,0 +1,78 @@
+<h2>famon asset direction</h2>
+<p class="subtitle">Pick the visual tone before we generate files. These options follow the current pub.dev pattern: a README hero/banner, badges, a short demo visual, and optional screenshot metadata.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="height:210px;border-radius:14px;background:#111827;color:#f9fafb;padding:22px;box-sizing:border-box;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;display:flex;flex-direction:column;gap:14px;justify-content:center;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:50px;height:50px;border-radius:12px;background:linear-gradient(135deg,#ff8a00,#ffcf40);display:grid;place-items:center;color:#111827;font-weight:800;font-size:26px;">f</div>
+          <div>
+            <div style="font-size:32px;font-weight:800;letter-spacing:0;">famon</div>
+            <div style="color:#93c5fd;font-size:13px;">Firebase Analytics Monitor</div>
+          </div>
+        </div>
+        <div style="background:#020617;border:1px solid #334155;border-radius:10px;padding:14px;font-size:14px;line-height:1.7;">
+          <div style="color:#22c55e;">[12:30:45.123] purchase</div>
+          <div style="color:#94a3b8;">  value: 39.00 &nbsp; currency: USD</div>
+          <div style="color:#f97316;">  items: 2 parsed across Android + iOS</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Terminal-First</h3>
+      <p>Most conservative. Strong CLI credibility, close to Serverpod/Very Good style: clean hero image plus badges and demo GIF.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="height:210px;border-radius:14px;background:linear-gradient(135deg,#101828 0%,#172554 54%,#f97316 140%);color:#fff;padding:22px;box-sizing:border-box;position:relative;overflow:hidden;font-family:Inter,ui-sans-serif,system-ui;">
+        <div style="position:absolute;right:-38px;top:-30px;width:150px;height:150px;border:3px solid rgba(250,204,21,.45);border-radius:50%;"></div>
+        <div style="position:absolute;right:34px;bottom:24px;width:118px;height:78px;border-radius:999px;background:rgba(45,212,191,.18);border:1px solid rgba(45,212,191,.45);"></div>
+        <div style="font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#fde68a;">monitor de eventos</div>
+        <div style="font-size:42px;font-weight:850;line-height:1;margin-top:10px;letter-spacing:0;">famon</div>
+        <div style="margin-top:10px;color:#dbeafe;font-size:15px;max-width:330px;">Real-time Firebase Analytics logs with a warm, precise, Latin tech voice.</div>
+        <div style="display:flex;gap:8px;margin-top:22px;">
+          <span style="background:#f97316;color:#111827;border-radius:999px;padding:7px 10px;font-weight:700;font-size:12px;">Android</span>
+          <span style="background:#2dd4bf;color:#111827;border-radius:999px;padding:7px 10px;font-weight:700;font-size:12px;">iOS</span>
+          <span style="background:#fde68a;color:#111827;border-radius:999px;padding:7px 10px;font-weight:700;font-size:12px;">CLI</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Subtle Spanish-Origin</h3>
+      <p>My recommendation. Signals Spanish-speaking roots through warmth, rhythm, and one small phrase, without turning the package into a regional novelty.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="height:210px;border-radius:14px;background:#fff7ed;color:#172554;padding:22px;box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui;display:grid;grid-template-columns:1fr 120px;gap:18px;align-items:center;">
+        <div>
+          <div style="font-size:38px;font-weight:850;letter-spacing:0;">famon</div>
+          <div style="font-size:15px;color:#475569;margin-top:8px;">A friendly watcher for Firebase Analytics events.</div>
+          <div style="margin-top:18px;background:#0f172a;color:#f8fafc;border-radius:12px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;">
+            <div style="color:#fb923c;">event: screen_view</div>
+            <div style="color:#5eead4;">status: visible</div>
+          </div>
+        </div>
+        <div style="width:112px;height:112px;border-radius:26px;background:linear-gradient(160deg,#f97316,#facc15);display:grid;place-items:center;box-shadow:0 18px 35px rgba(249,115,22,.25);">
+          <div style="width:58px;height:58px;border-radius:18px;background:#172554;position:relative;">
+            <div style="position:absolute;left:14px;right:14px;top:18px;height:8px;background:#5eead4;border-radius:99px;"></div>
+            <div style="position:absolute;left:22px;top:34px;width:14px;height:14px;background:#fff7ed;border-radius:99px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Friendly Mark</h3>
+      <p>More memorable and social-friendly, closer to Mason’s logo/demo approach, but less sober for a monitoring/debugging CLI.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="label">Research baseline</div>
+  <p>Top pub.dev packages usually lead with one of: branded banner, compact logo row, badges, then an animated demo or screenshots. Famon already has strong demos, so the missing piece is a coherent package identity and README hero.</p>
+</div>

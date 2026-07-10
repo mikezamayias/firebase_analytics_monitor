@@ -1,0 +1,225 @@
+{
+  "version": "1.0.0",
+  "exportTimestamp": "2026-05-25T10:00:00.000Z",
+  "data": {
+    "events": {
+      "count": 20,
+      "events": [
+        {
+          "id": "evt_001",
+          "timestamp": "2026-05-25T09:42:01.120Z",
+          "rawTimestamp": "09:42:01.120",
+          "eventName": "app_open",
+          "parameters": {"source": "launcher", "previous_session_ms": "184320"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_002",
+          "timestamp": "2026-05-25T09:42:01.480Z",
+          "rawTimestamp": "09:42:01.480",
+          "eventName": "screen_view",
+          "parameters": {"screen_name": "Home", "screen_class": "HomeScreen"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_003",
+          "timestamp": "2026-05-25T09:42:03.210Z",
+          "rawTimestamp": "09:42:03.210",
+          "eventName": "user_engagement",
+          "parameters": {"engagement_time_msec": "1730"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_004",
+          "timestamp": "2026-05-25T09:42:05.660Z",
+          "rawTimestamp": "09:42:05.660",
+          "eventName": "select_content",
+          "parameters": {"content_type": "product", "item_id": "sku_2451"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_005",
+          "timestamp": "2026-05-25T09:42:06.040Z",
+          "rawTimestamp": "09:42:06.040",
+          "eventName": "screen_view",
+          "parameters": {"screen_name": "ProductDetail", "screen_class": "ProductDetailScreen"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_006",
+          "timestamp": "2026-05-25T09:42:09.870Z",
+          "rawTimestamp": "09:42:09.870",
+          "eventName": "view_item",
+          "parameters": {"currency": "EUR", "value": "29.90"},
+          "items": [
+            {"item_id": "sku_2451", "item_name": "Wireless Earbuds Pro", "item_category": "audio", "price": "29.90", "quantity": "1"}
+          ],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_007",
+          "timestamp": "2026-05-25T09:42:14.220Z",
+          "rawTimestamp": "09:42:14.220",
+          "eventName": "add_to_cart",
+          "parameters": {"currency": "EUR", "value": "29.90"},
+          "items": [
+            {"item_id": "sku_2451", "item_name": "Wireless Earbuds Pro", "item_category": "audio", "price": "29.90", "quantity": "1"}
+          ],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_008",
+          "timestamp": "2026-05-25T09:42:16.510Z",
+          "rawTimestamp": "09:42:16.510",
+          "eventName": "screen_view",
+          "parameters": {"screen_name": "Cart", "screen_class": "CartScreen"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_009",
+          "timestamp": "2026-05-25T09:42:18.940Z",
+          "rawTimestamp": "09:42:18.940",
+          "eventName": "begin_checkout",
+          "parameters": {"currency": "EUR", "value": "29.90", "coupon": "WELCOME10"},
+          "items": [
+            {"item_id": "sku_2451", "item_name": "Wireless Earbuds Pro", "item_category": "audio", "price": "29.90", "quantity": "1"}
+          ],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_010",
+          "timestamp": "2026-05-25T09:42:22.330Z",
+          "rawTimestamp": "09:42:22.330",
+          "eventName": "add_payment_info",
+          "parameters": {"currency": "EUR", "value": "26.91", "payment_type": "card"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_011",
+          "timestamp": "2026-05-25T09:42:25.190Z",
+          "rawTimestamp": "09:42:25.190",
+          "eventName": "purchase",
+          "parameters": {"currency": "EUR", "value": "26.91", "transaction_id": "T_8731", "tax": "5.18", "shipping": "0.00"},
+          "items": [
+            {"item_id": "sku_2451", "item_name": "Wireless Earbuds Pro", "item_category": "audio", "price": "29.90", "quantity": "1"}
+          ],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_012",
+          "timestamp": "2026-05-25T09:42:26.420Z",
+          "rawTimestamp": "09:42:26.420",
+          "eventName": "screen_view",
+          "parameters": {"screen_name": "OrderConfirmation", "screen_class": "OrderConfirmationScreen"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_013",
+          "timestamp": "2026-05-25T09:42:31.080Z",
+          "rawTimestamp": "09:42:31.080",
+          "eventName": "share",
+          "parameters": {"method": "instagram_stories", "content_type": "order_confirmation"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_014",
+          "timestamp": "2026-05-25T09:42:34.610Z",
+          "rawTimestamp": "09:42:34.610",
+          "eventName": "screen_view",
+          "parameters": {"screen_name": "Home", "screen_class": "HomeScreen"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_015",
+          "timestamp": "2026-05-25T09:42:38.290Z",
+          "rawTimestamp": "09:42:38.290",
+          "eventName": "search",
+          "parameters": {"search_term": "noise cancelling headphones"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_016",
+          "timestamp": "2026-05-25T09:42:39.770Z",
+          "rawTimestamp": "09:42:39.770",
+          "eventName": "view_search_results",
+          "parameters": {"search_term": "noise cancelling headphones", "result_count": "14"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_017",
+          "timestamp": "2026-05-25T09:42:43.510Z",
+          "rawTimestamp": "09:42:43.510",
+          "eventName": "select_item",
+          "parameters": {"item_list_id": "search_results", "item_list_name": "Search Results"},
+          "items": [
+            {"item_id": "sku_3018", "item_name": "Over-Ear ANC", "item_category": "audio", "price": "189.00", "quantity": "1"}
+          ],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_018",
+          "timestamp": "2026-05-25T09:42:48.150Z",
+          "rawTimestamp": "09:42:48.150",
+          "eventName": "view_item",
+          "parameters": {"currency": "EUR", "value": "189.00"},
+          "items": [
+            {"item_id": "sku_3018", "item_name": "Over-Ear ANC", "item_category": "audio", "price": "189.00", "quantity": "1"}
+          ],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_019",
+          "timestamp": "2026-05-25T09:42:55.020Z",
+          "rawTimestamp": "09:42:55.020",
+          "eventName": "user_engagement",
+          "parameters": {"engagement_time_msec": "6870"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        },
+        {
+          "id": "evt_020",
+          "timestamp": "2026-05-25T09:42:58.660Z",
+          "rawTimestamp": "09:42:58.660",
+          "eventName": "app_background",
+          "parameters": {"engagement_time_msec": "57540"},
+          "items": [],
+          "manualParameters": {},
+          "isFiltered": false
+        }
+      ]
+    },
+    "metadata": {"count": 0, "metadata": []},
+    "sessions": {"count": 0, "sessions": []}
+  }
+}

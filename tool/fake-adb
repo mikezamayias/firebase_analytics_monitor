@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Fake adb that streams realistic FA-SVC logcat lines for demo recording.
+# famon monitor calls: adb logcat -v time -s FA-SVC
+# This script ignores args and streams events with realistic timing.
+
+# If called with "devices", pretend one device is connected
+if [[ "$1" == "devices" ]]; then
+  echo "List of devices attached"
+  echo "emulator-5554	device"
+  exit 0
+fi
+
+# Generate current-ish timestamps
+ts() {
+  date -j -v+"${1}"S "+%m-%d %H:%M:%S.$(printf '%03d' $((RANDOM % 1000)))"
+}
+
+SEC=0
+
+emit() {
+  local name="$1"; shift
+  local params="$1"
+  echo "$(ts $SEC) I/FA-SVC  : Logging event: origin=app,name=${name},params=Bundle[{${params}}]"
+}
+
+sleep 0.3
+emit "app_open" "source=launcher, previous_session_ms=Long(184320)"
+SEC=$((SEC+1)); sleep 1.2
+
+emit "screen_view" "screen_name=String(Home), screen_class=String(HomeScreen)"
+SEC=$((SEC+1)); sleep 0.8
+
+emit "user_engagement" "engagement_time_msec=Long(1730)"
+SEC=$((SEC+1)); sleep 1.5
+
+emit "select_content" "content_type=String(product), item_id=String(sku_2451)"
+SEC=$((SEC+1)); sleep 0.6
+
+emit "screen_view" "screen_name=String(ProductDetail), screen_class=String(ProductDetailScreen)"
+SEC=$((SEC+1)); sleep 1.8
+
+emit "view_item" "currency=String(EUR), value=Double(29.90), items=[Bundle[{item_id=String(sku_2451), item_name=String(Wireless Earbuds Pro), item_category=String(audio), price=Double(29.90), quantity=Long(1)}]]"
+SEC=$((SEC+1)); sleep 2.0
+
+emit "add_to_cart" "currency=String(EUR), value=Double(29.90), items=[Bundle[{item_id=String(sku_2451), item_name=String(Wireless Earbuds Pro), item_category=String(audio), price=Double(29.90), quantity=Long(1)}]]"
+SEC=$((SEC+1)); sleep 1.2
+
+emit "screen_view" "screen_name=String(Cart), screen_class=String(CartScreen)"
+SEC=$((SEC+1)); sleep 1.5
+
+emit "begin_checkout" "currency=String(EUR), value=Double(29.90), coupon=String(WELCOME10)"
+SEC=$((SEC+1)); sleep 1.8
+
+emit "add_payment_info" "currency=String(EUR), value=Double(26.91), payment_type=String(card)"
+SEC=$((SEC+1)); sleep 1.5
+
+emit "purchase" "currency=String(EUR), value=Double(26.91), transaction_id=String(T_8731), tax=Double(5.18), shipping=Double(0.00), items=[Bundle[{item_id=String(sku_2451), item_name=String(Wireless Earbuds Pro), item_category=String(audio), price=Double(29.90), quantity=Long(1)}]]"
+SEC=$((SEC+1)); sleep 2.0
+
+emit "screen_view" "screen_name=String(OrderConfirmation), screen_class=String(OrderConfirmationScreen)"
+SEC=$((SEC+1)); sleep 1.2
+
+emit "search" "search_term=String(noise cancelling headphones)"
+SEC=$((SEC+1)); sleep 0.8
+
+emit "view_search_results" "search_term=String(noise cancelling headphones), result_count=Long(14)"
+SEC=$((SEC+1)); sleep 1.5
+
+emit "select_item" "item_list_id=String(search_results), item_list_name=String(Search Results), items=[Bundle[{item_id=String(sku_3018), item_name=String(Over-Ear ANC), item_category=String(audio), price=Double(189.00), quantity=Long(1)}]]"
+SEC=$((SEC+1)); sleep 2.0
+
+# Keep stream alive briefly then exit
+sleep 1

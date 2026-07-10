@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>famon — five Hellas token variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=GFS+Didot&family=GFS+Neohellenic:ital,wght@0,400;0,700;1,400;1,700&family=Cormorant+Garamond:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f4eee0;
+  --paper-deep: #ece4d2;
+  --ink: #1a1a1a;
+  --ink-soft: #4a453d;
+  --ink-faint: #8a8478;
+  --rule: #c9bfa5;
+  --rule-soft: #ddd4ba;
+  --blue-orlov: #3d6a9c;
+  --blue-epidaurus: #1d72a8;
+  --blue-bavarian: #4a8fc7;
+  --blue-royal: #0d5eaf;
+  --blue-junta: #0a1f5c;
+  --blue-modern: #004c98;
+  --blue-coat: #014488;
+  --argent: #ffffff;
+  --argent-soft: #faf6ec;
+  --vergina-gold: #c9a227;
+  --imperial-gold: #b88a1f;
+  --olive-victor: #6b7c3f;
+  --olive-deep: #3f4a26;
+  --phoenix-ember: #c84a1a;
+  --phoenix-ash: #2b1a14;
+  --tyrian-purple: #66023c;
+  --athena-bronze: #7b6537;
+  --aegean-deep: #15445e;
+  --santorini-cyan: #0892d0;
+  --terracotta: #b8593a;
+  --ochre: #c8924a;
+  --display: "GFS Didot", "Cormorant Garamond", Georgia, serif;
+  --serif: "Cormorant Garamond", "GFS Didot", Georgia, serif;
+  --sans: "GFS Neohellenic", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #f7f4ec;
+  color: var(--ink);
+  font-family: var(--sans);
+  padding: 34px;
+}
+
+main {
+  max-width: 1220px;
+  margin: 0 auto;
+}
+
+header {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 42px;
+  font-weight: 400;
+  letter-spacing: .03em;
+  color: var(--ink);
+}
+
+.intro {
+  max-width: 820px;
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.variant {
+  border: 1px solid var(--rule-soft);
+  background: var(--argent-soft);
+  padding: 14px;
+}
+
+.label {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.shot {
+  height: 220px;
+  border-radius: 10px;
+  padding: 18px;
+  border: 1px solid;
+}
+
+.shot-inner {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 18px;
+  height: 100%;
+  align-items: center;
+}
+
+.icon {
+  width: 86px;
+  height: 86px;
+  border-radius: 19px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .3);
+}
+
+.glyph {
+  font-family: var(--mono);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.path {
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+.name {
+  font-size: 44px;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1.02;
+  margin-top: 4px;
+}
+
+.copy {
+  font-size: 17px;
+  line-height: 1.45;
+  max-width: 390px;
+  margin-top: 9px;
+}
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.token {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 4px 6px;
+  border: 1px solid currentColor;
+  opacity: .72;
+}
+
+.v1 .shot { background: var(--paper); color: var(--ink); border-color: var(--rule); }
+.v1 .icon { background: var(--ink); }
+.v1 .glyph { color: var(--vergina-gold); }
+.v1 .path { color: var(--ink-faint); }
+.v1 .name { color: var(--blue-modern); font-family: var(--sans); }
+.v1 .copy { color: var(--ink-soft); }
+
+.v2 .shot { background: var(--argent-soft); color: var(--ink); border-color: #bed0d6; }
+.v2 .icon { background: var(--aegean-deep); }
+.v2 .glyph { color: var(--santorini-cyan); }
+.v2 .path { color: #6f7e82; }
+.v2 .name { color: var(--aegean-deep); font-family: var(--sans); }
+.v2 .copy { color: #39464a; }
+
+.v3 .shot { background: var(--paper-deep); color: var(--ink); border-color: #c4b28a; }
+.v3 .icon { background: var(--blue-orlov); }
+.v3 .glyph { color: var(--imperial-gold); }
+.v3 .path { color: #786e5d; }
+.v3 .name { color: var(--blue-orlov); font-family: var(--serif); font-weight: 600; }
+.v3 .copy { color: var(--ink-soft); }
+
+.v4 .shot { background: #f1ecdc; color: var(--ink); border-color: #bec4a6; }
+.v4 .icon { background: var(--olive-deep); }
+.v4 .glyph { color: var(--ochre); }
+.v4 .path { color: #77745f; }
+.v4 .name { color: var(--olive-deep); font-family: var(--sans); }
+.v4 .copy { color: #414532; }
+
+.v5 .shot { background: #f5eadf; color: var(--ink); border-color: #d0a48f; }
+.v5 .icon { background: var(--phoenix-ash); }
+.v5 .glyph { color: var(--phoenix-ember); }
+.v5 .path { color: #866b5d; }
+.v5 .name { color: var(--tyrian-purple); font-family: var(--sans); }
+.v5 .copy { color: #513d36; }
+
+@media (max-width: 880px) {
+  body { padding: 22px; }
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Option A, Hellas token variants</h1>
+    <p class="intro">Same layout as the screenshot: quiet package card, icon left, package path, wordmark, product copy. Each version uses a different Hellas token family and a small icon tweak only.</p>
+  </header>
+
+  <section class="grid">
+    <article class="variant v1">
+      <div class="label"><span>01 / canonical</span><span>paper + blue-modern + vergina-gold</span></div>
+      <div class="shot">
+        <div class="shot-inner">
+          <div class="icon"><div class="glyph">f_</div></div>
+          <div>
+            <div class="path">pub.dev/packages/famon</div>
+            <div class="name">famon</div>
+            <div class="copy">Monitor Firebase Analytics from Android and iOS logs without leaving the terminal.</div>
+            <div class="tokens"><span class="token">paper</span><span class="token">ink</span><span class="token">blue modern</span><span class="token">vergina gold</span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="variant v2">
+      <div class="label"><span>02 / aegean</span><span>argent-soft + aegean-deep + santorini-cyan</span></div>
+      <div class="shot">
+        <div class="shot-inner">
+          <div class="icon"><div class="glyph">f›</div></div>
+          <div>
+            <div class="path">pub.dev/packages/famon</div>
+            <div class="name">famon</div>
+            <div class="copy">Monitor Firebase Analytics from Android and iOS logs without leaving the terminal.</div>
+            <div class="tokens"><span class="token">argent soft</span><span class="token">aegean deep</span><span class="token">santorini cyan</span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="variant v3">
+      <div class="label"><span>03 / orlov</span><span>paper-deep + blue-orlov + imperial-gold</span></div>
+      <div class="shot">
+        <div class="shot-inner">
+          <div class="icon"><div class="glyph">f•</div></div>
+          <div>
+            <div class="path">pub.dev/packages/famon</div>
+            <div class="name">famon</div>
+            <div class="copy">Monitor Firebase Analytics from Android and iOS logs without leaving the terminal.</div>
+            <div class="tokens"><span class="token">paper deep</span><span class="token">blue orlov</span><span class="token">imperial gold</span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="variant v4">
+      <div class="label"><span>04 / olive</span><span>paper + olive-deep + ochre</span></div>
+      <div class="shot">
+        <div class="shot-inner">
+          <div class="icon"><div class="glyph">f:</div></div>
+          <div>
+            <div class="path">pub.dev/packages/famon</div>
+            <div class="name">famon</div>
+            <div class="copy">Monitor Firebase Analytics from Android and iOS logs without leaving the terminal.</div>
+            <div class="tokens"><span class="token">olive deep</span><span class="token">ochre</span><span class="token">rule soft</span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <article class="variant v5">
+      <div class="label"><span>05 / phoenix</span><span>phoenix-ash + ember + tyrian-purple</span></div>
+      <div class="shot">
+        <div class="shot-inner">
+          <div class="icon"><div class="glyph">f/</div></div>
+          <div>
+            <div class="path">pub.dev/packages/famon</div>
+            <div class="name">famon</div>
+            <div class="copy">Monitor Firebase Analytics from Android and iOS logs without leaving the terminal.</div>
+            <div class="tokens"><span class="token">phoenix ash</span><span class="token">phoenix ember</span><span class="token">tyrian purple</span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+</main>
+</body>
+</html>

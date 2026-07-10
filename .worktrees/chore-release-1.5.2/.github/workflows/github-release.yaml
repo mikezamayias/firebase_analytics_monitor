@@ -1,0 +1,99 @@
+name: Create GitHub Release
+
+on:
+  push:
+    tags:
+      - "famon-v*.*.*"
+      - "famon_core-v*.*.*"
+      - "v*.*.*"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: 🏷️ Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📋 Extract version from tag
+        id: version
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          case "$GIT_REF" in
+            refs/tags/*) ;;
+            *)
+              echo "::error::Expected refs/tags/* ref, got: $GIT_REF. Dispatch this workflow with --ref <package-tag>."
+              exit 1
+              ;;
+          esac
+          TAG_NAME="${GIT_REF#refs/tags/}"
+          case "$TAG_NAME" in
+            famon-v*)
+              PACKAGE="famon"
+              VERSION="${TAG_NAME#famon-v}"
+              CHANGELOG_PATH="CHANGELOG.md"
+              RELEASE_NAME="famon $VERSION"
+              ;;
+            famon_core-v*)
+              PACKAGE="famon_core"
+              VERSION="${TAG_NAME#famon_core-v}"
+              CHANGELOG_PATH="packages/famon_core/CHANGELOG.md"
+              RELEASE_NAME="famon_core $VERSION"
+              ;;
+            v*)
+              PACKAGE="both"
+              VERSION="${TAG_NAME#v}"
+              CHANGELOG_PATH="CHANGELOG.md"
+              RELEASE_NAME="v$VERSION"
+              ;;
+            *)
+              echo "::error::Unrecognized tag format: $TAG_NAME"
+              exit 1
+              ;;
+          esac
+          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "package=$PACKAGE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "changelog_path=$CHANGELOG_PATH" >> "$GITHUB_OUTPUT"
+          echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: 📝 Extract changelog for version
+        id: changelog
+        env:
+          CHANGELOG_PATH: ${{ steps.version.outputs.changelog_path }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          CHANGELOG=$(awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (active) exit
+              if ($0 ~ "\\[" ver "\\]") { active = 1; next }
+            }
+            active { print }
+          ' "$CHANGELOG_PATH")
+          {
+            echo "body<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.release_name }}
+          body: ${{ steps.changelog.outputs.body }}
+          draft: false
+          prerelease: false

@@ -1,0 +1,82 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to release"
+        required: true
+        type: choice
+        options:
+          - famon
+          - famon_core
+      version:
+        description: "Version to release (e.g. 1.0.2)"
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: 🚀 Create release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: 🧪 Verify version files
+        env:
+          PACKAGE: ${{ github.event.inputs.package }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+
+          case "$PACKAGE" in
+            famon)
+              grep -q "version: $VERSION" pubspec.yaml || (echo "pubspec.yaml version mismatch" && exit 1)
+              grep -q "const packageVersion = '$VERSION';" lib/src/version.dart || (echo "lib/src/version.dart version mismatch" && exit 1)
+              grep -q "## \\[$VERSION\\]" CHANGELOG.md || (echo "CHANGELOG.md missing section for $VERSION" && exit 1)
+              ;;
+            famon_core)
+              grep -q "version: $VERSION" packages/famon_core/pubspec.yaml || (echo "packages/famon_core/pubspec.yaml version mismatch" && exit 1)
+              grep -q "## \\[$VERSION\\]" packages/famon_core/CHANGELOG.md || (echo "packages/famon_core/CHANGELOG.md missing section for $VERSION" && exit 1)
+              ;;
+            *)
+              echo "Unknown package: $PACKAGE"
+              exit 1
+              ;;
+          esac
+
+      - name: 🚀 Merge, tag and push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE: ${{ github.event.inputs.package }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          bash tool/release.sh "$PACKAGE" "$VERSION"
+
+      - name: 📦 Dispatch publish and GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE: ${{ github.event.inputs.package }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+          TAG="${PACKAGE}-v${VERSION}"
+          gh workflow run publish.yaml --ref "$TAG"
+          gh workflow run github-release.yaml --ref "$TAG"

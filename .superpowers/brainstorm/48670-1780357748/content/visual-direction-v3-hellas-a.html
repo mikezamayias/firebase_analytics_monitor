@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>famon — Hellas Token Pass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=GFS+Didot&family=GFS+Neohellenic:ital,wght@0,400;0,700;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f4eee0;
+  --paper-deep: #ece4d2;
+  --ink: #1a1a1a;
+  --ink-soft: #4a453d;
+  --ink-faint: #8a8478;
+  --rule: #c9bfa5;
+  --rule-soft: #ddd4ba;
+  --blue-modern: #004c98;
+  --blue-junta: #0a1f5c;
+  --vergina-gold: #c9a227;
+  --argent: #ffffff;
+  --argent-soft: #faf6ec;
+  --olive-victor: #6b7c3f;
+  --phoenix-ember: #c84a1a;
+  --display: "GFS Didot", "Cormorant Garamond", Georgia, serif;
+  --serif: "Cormorant Garamond", "GFS Didot", Georgia, serif;
+  --sans: "GFS Neohellenic", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .5;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 3px,
+      rgba(74, 69, 61, .012) 3px,
+      rgba(74, 69, 61, .012) 4px
+    );
+}
+
+main {
+  width: min(1180px, calc(100vw - 48px));
+  margin: 0 auto;
+  padding: 46px 0 60px;
+  position: relative;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.meta strong {
+  color: var(--blue-modern);
+  font-weight: 600;
+}
+
+.intro {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 36px;
+  align-items: end;
+  margin: 38px 0 22px;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(64px, 12vw, 132px);
+  line-height: .9;
+  letter-spacing: .035em;
+  color: var(--blue-modern);
+}
+
+.lede {
+  max-width: 540px;
+  margin: 18px 0 0;
+  color: var(--ink-soft);
+  font-size: 22px;
+  font-style: italic;
+}
+
+.mark {
+  width: 112px;
+  height: 112px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  display: grid;
+  place-items: center;
+  box-shadow: 10px 10px 0 var(--paper-deep);
+}
+
+.mark span {
+  font-family: var(--mono);
+  color: var(--vergina-gold);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.rule {
+  width: 128px;
+  height: 1px;
+  background: var(--vergina-gold);
+  margin: 24px 0 0;
+}
+
+.preview {
+  border-top: 1px solid var(--ink);
+  border-left: 1px solid var(--rule-soft);
+  border-right: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+  background: var(--argent-soft);
+  margin-top: 34px;
+  padding: 22px;
+}
+
+.hero-card {
+  aspect-ratio: 1200 / 520;
+  min-height: 390px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  display: grid;
+  grid-template-columns: .86fr 1.14fr;
+}
+
+.hero-copy {
+  padding: 42px 38px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid var(--rule-soft);
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.hero-name {
+  margin-top: 26px;
+  font-family: var(--display);
+  font-size: 72px;
+  line-height: .95;
+  letter-spacing: .035em;
+  color: var(--blue-modern);
+}
+
+.hero-subtitle {
+  margin-top: 20px;
+  color: var(--ink-soft);
+  font-size: 23px;
+  line-height: 1.28;
+  max-width: 370px;
+}
+
+.package-row {
+  display: grid;
+  gap: 10px;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.terminal-wrap {
+  padding: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.terminal {
+  width: 100%;
+  background: #0b0b0b;
+  color: #e7e5df;
+  border: 1px solid #2b2b2b;
+  box-shadow: 0 16px 42px rgba(26, 26, 26, .18);
+  font-family: var(--mono);
+}
+
+.terminal-top {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #2b2b2b;
+  color: #928d83;
+  padding: 13px 16px;
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+.terminal-body {
+  padding: 20px 18px 22px;
+  font-size: 15px;
+  line-height: 1.72;
+}
+
+.dim { color: #8a8478; }
+.event { color: var(--vergina-gold); }
+.param { color: #d7d0c1; padding-left: 24px; }
+.ok { color: #91a766; }
+.warn { color: #d0714f; }
+
+.tokens {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--rule-soft);
+  border: 1px solid var(--rule-soft);
+  margin-top: 18px;
+}
+
+.token {
+  min-height: 92px;
+  padding: 12px;
+  background: var(--argent-soft);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.swatch {
+  width: 100%;
+  height: 28px;
+  border: 1px solid rgba(26, 26, 26, .15);
+}
+
+.notes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px;
+  margin-top: 34px;
+  border-top: 1px solid var(--rule);
+  padding-top: 24px;
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 30px;
+  letter-spacing: .02em;
+}
+
+p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 780px) {
+  .intro,
+  .hero-card,
+  .notes {
+    grid-template-columns: 1fr;
+  }
+
+  .mark { display: none; }
+  .hero-copy { border-right: 0; border-bottom: 1px solid var(--rule-soft); }
+  .hero-card { aspect-ratio: auto; }
+  .tokens { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="meta">
+    <span>asset direction / option a</span>
+    <strong>hellas tokens</strong>
+    <span>pub.dev package identity</span>
+  </div>
+
+  <section class="intro">
+    <div>
+      <h1>famon</h1>
+      <p class="lede">A maintainer-grade package identity: restrained, typographic, terminal-first, and built from the Hellas design system tokens rather than generated decoration.</p>
+      <div class="rule"></div>
+    </div>
+    <div class="mark"><span>f_</span></div>
+  </section>
+
+  <section class="preview" aria-label="Package hero preview">
+    <div class="hero-card">
+      <div class="hero-copy">
+        <div>
+          <div class="eyebrow">Firebase Analytics Monitor</div>
+          <div class="hero-name">famon</div>
+          <div class="hero-subtitle">Monitor Android and iOS Analytics logs without leaving the terminal.</div>
+        </div>
+        <div class="package-row">
+          <span>dart pub global activate famon</span>
+          <span>pub.dev/packages/famon</span>
+        </div>
+      </div>
+
+      <div class="terminal-wrap">
+        <div class="terminal">
+          <div class="terminal-top">
+            <span>famon monitor --platform auto</span>
+            <span>live</span>
+          </div>
+          <div class="terminal-body">
+            <div><span class="dim">[12-25 10:30:45.123]</span> <span class="event">purchase</span></div>
+            <div class="param">value: 39.00</div>
+            <div class="param">currency: EUR</div>
+            <div class="param ok">items: 2 parsed</div>
+            <div style="height:12px"></div>
+            <div><span class="dim">[12-25 10:31:15.456]</span> <span class="event">screen_view</span></div>
+            <div class="param">screen_name: Checkout</div>
+            <div class="param warn">hidden noise: _vs, user_engagement</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tokens" aria-label="Applied Hellas tokens">
+    <div class="token"><div class="swatch" style="background:var(--paper)"></div><span>paper<br>#f4eee0</span></div>
+    <div class="token"><div class="swatch" style="background:var(--ink)"></div><span>ink<br>#1a1a1a</span></div>
+    <div class="token"><div class="swatch" style="background:var(--blue-modern)"></div><span>blue modern<br>#004c98</span></div>
+    <div class="token"><div class="swatch" style="background:var(--vergina-gold)"></div><span>vergina gold<br>#c9a227</span></div>
+    <div class="token"><div class="swatch" style="background:var(--olive-victor)"></div><span>olive victor<br>#6b7c3f</span></div>
+    <div class="token"><div class="swatch" style="background:var(--phoenix-ember)"></div><span>phoenix ember<br>#c84a1a</span></div>
+  </section>
+
+  <section class="notes">
+    <div>
+      <h2>What ships</h2>
+      <p>README hero, compact logo mark, pub.dev screenshot/preview image, OG card, and a small graphics index. The existing demo GIFs stay useful and should be promoted rather than replaced.</p>
+    </div>
+    <div>
+      <h2>What to avoid</h2>
+      <p>No mascots, no glossy gradients, no decorative regional symbols. The Hellas influence is token-level: paper, blue, gold, typography, rules, and archival restraint.</p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

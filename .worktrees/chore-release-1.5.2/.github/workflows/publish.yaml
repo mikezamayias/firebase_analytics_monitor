@@ -1,0 +1,204 @@
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      # Per-package tags (current scheme since 2026-05-24 version decoupling)
+      - "famon-v*.*.*"
+      - "famon_core-v*.*.*"
+      # Legacy single-package-pair scheme — kept for one release cycle so any
+      # in-flight reverts/hotfixes still trigger a publish. Remove after the
+      # first per-package release ships.
+      - "v*.*.*"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    name: Detect package from tag
+    runs-on: ubuntu-latest
+    outputs:
+      package: ${{ steps.parse.outputs.package }}
+      version: ${{ steps.parse.outputs.version }}
+    steps:
+      - name: Parse tag
+        id: parse
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+
+          case "$GIT_REF" in
+            refs/tags/*) TAG="${GIT_REF#refs/tags/}" ;;
+            *)
+              echo "::error::Expected refs/tags/* ref, got: $GIT_REF. Dispatch this workflow with --ref <package-tag>."
+              exit 1
+              ;;
+          esac
+
+          case "$TAG" in
+            famon-v*)
+              pkg="famon"
+              ver="${TAG#famon-v}"
+              ;;
+            famon_core-v*)
+              pkg="famon_core"
+              ver="${TAG#famon_core-v}"
+              ;;
+            v*)
+              pkg="both"
+              ver="${TAG#v}"
+              ;;
+            *)
+              echo "::error::Unrecognized tag format: $TAG"
+              exit 1
+              ;;
+          esac
+          echo "Tag $TAG → package=$pkg version=$ver"
+          echo "package=$pkg" >> "$GITHUB_OUTPUT"
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+
+  verify-versions:
+    name: Verify version consistency
+    needs: detect
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check tag matches version sources
+        env:
+          PKG: ${{ needs.detect.outputs.package }}
+          VER: ${{ needs.detect.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          read_pubspec() { grep "^version:" "$1" | sed 's/version: //' | tr -d ' '; }
+          read_dart_const() { grep "packageVersion" "$1" | sed "s/.*= '\([^']*\)'.*/\1/"; }
+          read_core_dep() {
+            grep -E "^[[:space:]]+famon_core:[[:space:]]*\^" pubspec.yaml \
+              | sed "s/.*famon_core:[[:space:]]*\^//" \
+              | tr -d ' '
+          }
+
+          fail=0
+          check_match() {
+            local label="$1"; local actual="$2"; local expected="$3"
+            echo "$label: $actual (expected: $expected)"
+            if [ -z "$actual" ]; then
+              echo "::error::$label is empty. Check source file."
+              fail=1
+            elif [ "$actual" != "$expected" ]; then
+              echo "::error::$label mismatch."
+              fail=1
+            fi
+          }
+
+          case "$PKG" in
+            famon)
+              check_match "pubspec.yaml" "$(read_pubspec pubspec.yaml)" "$VER"
+              check_match "lib/src/version.dart" "$(read_dart_const lib/src/version.dart)" "$VER"
+              ;;
+            famon_core)
+              check_match "packages/famon_core/pubspec.yaml" "$(read_pubspec packages/famon_core/pubspec.yaml)" "$VER"
+              ;;
+            both)
+              # Legacy synchronized-bump mode (tag v*). Both packages
+              # carry the same version AND the root pubspec's famon_core
+              # constraint must point at the same version.
+              check_match "pubspec.yaml" "$(read_pubspec pubspec.yaml)" "$VER"
+              check_match "packages/famon_core/pubspec.yaml" "$(read_pubspec packages/famon_core/pubspec.yaml)" "$VER"
+              check_match "lib/src/version.dart" "$(read_dart_const lib/src/version.dart)" "$VER"
+              check_match "pubspec.yaml famon_core: ^X.Y.Z" "$(read_core_dep)" "$VER"
+              ;;
+          esac
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::Version verification failed. Run 'dart run tool/update_version.dart --package $PKG $VER' and retag."
+            exit 1
+          fi
+
+          echo "Version sources verified."
+
+  publish-core:
+    name: Publish famon_core to pub.dev
+    needs: [detect, verify-versions]
+    if: needs.detect.outputs.package == 'famon_core' || needs.detect.outputs.package == 'both'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
+      - name: Prepare package copy
+        run: cp -R packages/famon_core "${{ runner.temp }}/famon_core"
+      - name: Install dependencies
+        working-directory: ${{ runner.temp }}/famon_core
+        run: dart pub get
+      - name: Validate package
+        working-directory: ${{ runner.temp }}/famon_core
+        run: dart pub publish --dry-run
+      - name: Publish
+        working-directory: ${{ runner.temp }}/famon_core
+        run: dart pub publish --force
+
+  publish-cli:
+    name: Publish famon to pub.dev
+    needs: [detect, verify-versions, publish-core]
+    # publish-core is skipped when the tag is `famon-v*`, but the `needs` list
+    # still resolves via GitHub's job-skipping semantics. The `always()` guard
+    # below explicitly tolerates the skipped dependency.
+    if: |
+      always() &&
+      needs.detect.result == 'success' &&
+      needs.verify-versions.result == 'success' &&
+      (needs.publish-core.result == 'success' || needs.publish-core.result == 'skipped') &&
+      (needs.detect.outputs.package == 'famon' || needs.detect.outputs.package == 'both')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
+      - name: Read famon_core dependency
+        id: core_dep
+        run: |
+          set -euo pipefail
+          CORE_VERSION="$(grep -E "^[[:space:]]+famon_core:[[:space:]]*\^" pubspec.yaml \
+            | sed "s/.*famon_core:[[:space:]]*\^//" \
+            | tr -d ' ')"
+          if [ -z "$CORE_VERSION" ]; then
+            echo "::error::Could not read famon_core dependency from pubspec.yaml"
+            exit 1
+          fi
+          echo "version=$CORE_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Wait for pub.dev to index famon_core
+        env:
+          CORE_VERSION: ${{ steps.core_dep.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          MAX_ATTEMPTS=30
+          SLEEP=10
+
+          echo "Polling pub.dev for famon_core@$CORE_VERSION (max ${MAX_ATTEMPTS} attempts, ${SLEEP}s apart)..."
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            if curl --fail --silent --show-error \
+                "https://pub.dev/api/packages/famon_core" \
+                | grep -q "\"version\":\"$CORE_VERSION\""; then
+              echo "famon_core@$CORE_VERSION is live on pub.dev (attempt $i)."
+              exit 0
+            fi
+            echo "Attempt $i: famon_core@$CORE_VERSION not yet indexed. Sleeping ${SLEEP}s."
+            sleep "$SLEEP"
+          done
+
+          echo "::error::famon_core@$CORE_VERSION was not indexed on pub.dev within $((MAX_ATTEMPTS * SLEEP))s. famon CLI publish aborted to avoid resolving the wrong famon_core version."
+          exit 1
+      - name: Install dependencies
+        run: dart pub get
+      - name: Validate package
+        run: dart pub publish --dry-run
+      - name: Publish
+        run: dart pub publish --force

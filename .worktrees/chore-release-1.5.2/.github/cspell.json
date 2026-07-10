@@ -1,0 +1,60 @@
+{
+  "version": "0.2",
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "dictionaries": ["vgv_allowed", "vgv_forbidden"],
+  "dictionaryDefinitions": [
+    {
+      "name": "vgv_allowed",
+      "path": "https://raw.githubusercontent.com/verygoodopensource/very_good_dictionaries/main/allowed.txt",
+      "description": "Allowed VGV Spellings"
+    },
+    {
+      "name": "vgv_forbidden",
+      "path": "https://raw.githubusercontent.com/verygoodopensource/very_good_dictionaries/main/forbidden.txt",
+      "description": "Forbidden VGV Spellings"
+    }
+  ],
+  "useGitignore": true,
+  "words": [
+    "logcat",
+    "famon",
+    "xcrun",
+    "simctl",
+    "idevicesyslog",
+    "idevice",
+    "libimobiledevice",
+    "setprop",
+    "UDID",
+    "locationd",
+    "symptomsd",
+    "termio",
+    "xclip",
+    "osascript",
+    "zenity",
+    "ncruces",
+    "Idevicesyslog",
+    "mikezamayias",
+    "unvalidated",
+    "sublist",
+    "finalizer",
+    "usbmuxd",
+    "softprops",
+    "stty",
+    "cgen",
+    "Lakos",
+    "Zamayias",
+    "dartlang",
+    "replug",
+    "pubignore",
+    "pubspec",
+    "pubspecs",
+    "OIDC",
+    "preflight",
+    "monorepo",
+    "Codacy",
+    "CodeRabbit",
+    "coderabbit",
+    "codacy",
+    "writeln"
+  ]
+}

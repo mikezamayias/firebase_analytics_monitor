@@ -99,9 +99,16 @@ class IosLogParserService implements LogParserInterface {
       r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Logging event:.*,\s*(\w+)(?:\s*\([^)]*\))?(?:,|$)',
     ),
 
-    // Pattern 3: Event logged confirmation format
+    // Pattern 3: Event logged confirmation format with params
     // Example: [FirebaseAnalytics][I-ACS023072] Event logged. Event name,
-    // event params: purchase
+    // event params: purchase, { ... }
+    RegExp(
+      r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\..*:\s*(\w+)(?:\s*\([^)]*\))?,?\s*\{(.*)\}',
+      multiLine: true,
+      dotAll: true,
+    ),
+
+    // Pattern 3b: Event logged confirmation format without params block
     RegExp(r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\..*:\s*(\w+)'),
 
     // Pattern 4: FIRAnalytics format (alternative Firebase Analytics logging)

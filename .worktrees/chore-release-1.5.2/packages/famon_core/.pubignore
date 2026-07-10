@@ -1,0 +1,8 @@
+.dart_tool/
+test/
+coverage/
+*.log
+firebase-debug.log
+*.dylib
+*.so
+*.dll
