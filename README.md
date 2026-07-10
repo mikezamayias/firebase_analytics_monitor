@@ -1,3 +1,5 @@
+![famon package hero](assets/brand/famon_readme_hero.png)
+
 # famon - Firebase Analytics Monitor
 
 [![pub package][pub_badge]][pub_link]
@@ -6,6 +8,8 @@
 [![License: MIT][license_badge]][license_link]
 
 CLI tool for real-time monitoring of Firebase Analytics events from Android and iOS.
+
+![famon CLI demo](assets/pub/famon_cli_demo.gif)
 
 ## Features
 

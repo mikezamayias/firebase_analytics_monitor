@@ -10,6 +10,10 @@ topics:
   - cli
   - monitoring
 
+screenshots:
+  - description: Terminal demo showing famon streaming Firebase Analytics events.
+    path: assets/pub/famon_cli_demo.gif
+
 environment:
   sdk: ">=3.0.0 <4.0.0"
 
