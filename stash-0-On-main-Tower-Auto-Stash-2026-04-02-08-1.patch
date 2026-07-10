@@ -1,0 +1,270 @@
+diff --git a/.gitignore b/.gitignore
+index 00ba852..750ed09 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -28,3 +28,4 @@ coverage/
+ *.so
+ *.dll
+ libisar.dylib
++.todos/
+diff --git a/lib/src/cli/commands/filtered_monitor_command.dart b/lib/src/cli/commands/filtered_monitor_command.dart
+index 0efdf5f..b059943 100644
+--- a/lib/src/cli/commands/filtered_monitor_command.dart
++++ b/lib/src/cli/commands/filtered_monitor_command.dart
+@@ -61,15 +61,24 @@ class FilteredMonitorCommand extends Command<int> {
+     argParser
+       ..addMultiOption(
+         'hide',
+-        help: 'Event names to hide from output. Can be used multiple times.',
++        help: 'Event names to hide from output. '
++            'Supports comma-separated values and can be used multiple times.',
+         valueHelp: 'EVENT_NAME',
+       )
+       ..addMultiOption(
+         'show-only',
+         abbr: 's',
+-        help: 'Only show these event names. Can be used multiple times.',
++        help: 'Only show these event names. '
++            'Supports comma-separated values and can be used multiple times.',
+         valueHelp: 'EVENT_NAME',
+       )
++      ..addMultiOption(
++        'show-params',
++        abbr: 'p',
++        help: 'Only show events containing these parameter names. '
++            'Supports comma-separated values and can be used multiple times.',
++        valueHelp: 'PARAM_NAME',
++      )
+       ..addOption(
+         'min-frequency',
+         help: 'Minimum frequency threshold for events to display.',
+@@ -146,9 +155,15 @@ class FilteredMonitorCommand extends Command<int> {
+   @override
+   Future<int> run() async {
+     // Parse arguments
+-    final hideEvents = (argResults?['hide'] as List<String>?) ?? <String>[];
+-    final showOnlyEvents =
+-        (argResults?['show-only'] as List<String>?) ?? <String>[];
++    final hideEvents = EventFilterUtils.expandCommaSeparated(
++      (argResults?['hide'] as List<String>?) ?? <String>[],
++    );
++    final showOnlyEvents = EventFilterUtils.expandCommaSeparated(
++      (argResults?['show-only'] as List<String>?) ?? <String>[],
++    );
++    final showParamNames = EventFilterUtils.expandCommaSeparated(
++      (argResults?['show-params'] as List<String>?) ?? <String>[],
++    );
+     final minFrequency = _parseIntOption('min-frequency');
+     final maxFrequency = _parseIntOption('max-frequency');
+     final limit = _parseIntOption('limit');
+@@ -267,6 +282,15 @@ class FilteredMonitorCommand extends Command<int> {
+             continue;
+           }
+ 
++          // Apply parameter name filtering (AND with event name filter)
++          if (EventFilterUtils.shouldSkipByParams(
++            enhancedEvent.allParameters,
++            enhancedEvent.items,
++            showParamNames,
++          )) {
++            continue;
++          }
++
+           // Save to database if persist is enabled
+           if (persist) {
+             await _eventRepository.saveEvent(enhancedEvent);
+diff --git a/lib/src/command_runner.dart b/lib/src/command_runner.dart
+index bf50d19..b287f60 100644
+--- a/lib/src/command_runner.dart
++++ b/lib/src/command_runner.dart
+@@ -98,17 +98,17 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
+       ..detail('  Top level options:');
+     for (final option in topLevelResults.options) {
+       if (topLevelResults.wasParsed(option)) {
+-        _logger.detail('  - \$option: \${topLevelResults[option]}');
++        _logger.detail('  - $option: ${topLevelResults[option]}');
+       }
+     }
+     if (topLevelResults.command != null) {
+       final commandResult = topLevelResults.command!;
+       _logger
+-        ..detail('  Command: \${commandResult.name}')
++        ..detail('  Command: ${commandResult.name}')
+         ..detail('    Command options:');
+       for (final option in commandResult.options) {
+         if (commandResult.wasParsed(option)) {
+-          _logger.detail('    - \$option: \${commandResult[option]}');
++          _logger.detail('    - $option: ${commandResult[option]}');
+         }
+       }
+     }
+@@ -142,9 +142,12 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
+       if (!isUpToDate) {
+         _logger
+           ..info('')
+-          ..info('''
+-\${lightYellow.wrap('Update available!')} \${lightCyan.wrap(packageVersion)} \u2192 \${lightCyan.wrap(latestVersion)}
+-Run \${lightCyan.wrap('\$executableName update')} to update''');
++          ..info(
++            '${lightYellow.wrap('Update available!')} '
++            '${lightCyan.wrap(packageVersion)} \u2192 '
++            '${lightCyan.wrap(latestVersion)}\n'
++            'Run ${lightCyan.wrap('$executableName update')} to update',
++          );
+       }
+     } on Exception catch (_) {
+       _logger.err('Failed to check for updates.');
+diff --git a/lib/src/commands/monitor_command.dart b/lib/src/commands/monitor_command.dart
+index 685236e..1a3cdd7 100644
+--- a/lib/src/commands/monitor_command.dart
++++ b/lib/src/commands/monitor_command.dart
+@@ -48,22 +48,30 @@ class MonitorCommand extends Command<int> {
+     argParser
+       ..addOption(
+         'platform',
+-        abbr: 'p',
+         allowed: ['android', 'ios-simulator', 'ios-device', 'auto'],
+         defaultsTo: 'auto',
+         help: 'Target platform for monitoring.',
+       )
+       ..addMultiOption(
+         'hide',
+-        help: 'Event names to hide from output. Can be used multiple times.',
++        help: 'Event names to hide from output. '
++            'Supports comma-separated values and can be used multiple times.',
+         valueHelp: 'EVENT_NAME',
+       )
+       ..addMultiOption(
+         'show-only',
+         abbr: 's',
+-        help: 'Only show these event names. Can be used multiple times.',
++        help: 'Only show these event names. '
++            'Supports comma-separated values and can be used multiple times.',
+         valueHelp: 'EVENT_NAME',
+       )
++      ..addMultiOption(
++        'show-params',
++        abbr: 'p',
++        help: 'Only show events containing these parameter names. '
++            'Supports comma-separated values and can be used multiple times.',
++        valueHelp: 'PARAM_NAME',
++      )
+       ..addFlag('no-color', negatable: false, help: 'Disables colorful output.')
+       ..addFlag(
+         'suggestions',
+@@ -106,7 +114,8 @@ class MonitorCommand extends Command<int> {
+         abbr: 'g',
+         help: 'Parameter names to classify as global/default. '
+             'These are separated from event-specific parameters in the '
+-            'output and can be toggled with the G key at runtime.',
++            'output and can be toggled with the G key at runtime. '
++            'Supports comma-separated values and can be used multiple times.',
+         valueHelp: 'PARAM_NAME',
+       )
+       ..addFlag(
+@@ -159,9 +168,15 @@ class MonitorCommand extends Command<int> {
+   @override
+   Future<int> run() async {
+     final platformArg = argResults?['platform'] as String? ?? 'auto';
+-    final hideEvents = (argResults?['hide'] as List<String>?) ?? <String>[];
+-    final showOnlyEvents =
+-        (argResults?['show-only'] as List<String>?) ?? <String>[];
++    final hideEvents = EventFilterUtils.expandCommaSeparated(
++      (argResults?['hide'] as List<String>?) ?? <String>[],
++    );
++    final showOnlyEvents = EventFilterUtils.expandCommaSeparated(
++      (argResults?['show-only'] as List<String>?) ?? <String>[],
++    );
++    final showParamNames = EventFilterUtils.expandCommaSeparated(
++      (argResults?['show-params'] as List<String>?) ?? <String>[],
++    );
+     final showSuggestions = argResults?['suggestions'] as bool? ?? false;
+     final showStats = argResults?['stats'] as bool? ?? false;
+     final rawOutput = argResults?['raw'] as bool? ?? false;
+@@ -170,8 +185,9 @@ class MonitorCommand extends Command<int> {
+     final enableDebugFor = argResults?['enable-debug'] as String?;
+     final raiseLogLevels = argResults?['raise-log-levels'] as bool? ?? false;
+     final noShortcuts = argResults?['no-shortcuts'] as bool? ?? false;
+-    final globalParamNames =
+-        ((argResults?['global-params'] as List<String>?) ?? <String>[]).toSet();
++    final globalParamNames = EventFilterUtils.expandCommaSeparated(
++      (argResults?['global-params'] as List<String>?) ?? <String>[],
++    ).toSet();
+     final initialHideGlobal =
+         argResults?['hide-global-params'] as bool? ?? false;
+     final initialHideEvent = argResults?['hide-event-params'] as bool? ?? false;
+@@ -244,6 +260,10 @@ class MonitorCommand extends Command<int> {
+       _logger.info('👀 Showing only: ${showOnlyEvents.join(', ')}');
+     }
+ 
++    if (showParamNames.isNotEmpty) {
++      _logger.info('🔎 Filtering by params: ${showParamNames.join(', ')}');
++    }
++
+     if (globalParamNames.isNotEmpty) {
+       _logger.info('🌐 Global parameters: ${globalParamNames.join(', ')}');
+     }
+@@ -387,6 +407,15 @@ class MonitorCommand extends Command<int> {
+               return;
+             }
+ 
++            // Apply parameter name filtering (AND with event name filter)
++            if (EventFilterUtils.shouldSkipByParams(
++              event.allParameters,
++              event.items,
++              showParamNames,
++            )) {
++              return;
++            }
++
+             // Skip display if paused (events still captured)
+             if (_isPaused) {
+               return;
+diff --git a/lib/src/utils/event_filter_utils.dart b/lib/src/utils/event_filter_utils.dart
+index 870db19..fe38f5e 100644
+--- a/lib/src/utils/event_filter_utils.dart
++++ b/lib/src/utils/event_filter_utils.dart
+@@ -3,6 +3,43 @@ class EventFilterUtils {
+   // Private constructor to prevent instantiation
+   EventFilterUtils._();
+ 
++  /// Expands a list of values that may contain comma-separated entries.
++  ///
++  /// Each value is split on commas, trimmed, and empty segments are discarded.
++  /// This allows flags like `-s event1,event2` in addition to repeated flags.
++  static List<String> expandCommaSeparated(List<String> values) {
++    if (values.isEmpty) return values;
++    return values
++        .expand((v) => v.split(','))
++        .map((v) => v.trim())
++        .where((v) => v.isNotEmpty)
++        .toList();
++  }
++
++  /// Check if an event should be skipped based on required parameter names.
++  ///
++  /// Returns true if the event should be skipped (none of the required
++  /// parameter names are present in the event's parameters or items).
++  ///
++  /// Multiple [requiredParamNames] combine with OR logic: the event passes
++  /// if ANY of the required parameter names are found.
++  static bool shouldSkipByParams(
++    Map<String, String> parameters,
++    List<Map<String, String>> items,
++    List<String> requiredParamNames,
++  ) {
++    if (requiredParamNames.isEmpty) return false;
++    for (final paramName in requiredParamNames) {
++      if (parameters.containsKey(paramName)) return false;
++    }
++    for (final item in items) {
++      for (final paramName in requiredParamNames) {
++        if (item.containsKey(paramName)) return false;
++      }
++    }
++    return true;
++  }
++
+   /// Check if an event should be skipped based on hide/show filters
+   ///
+   /// Returns true if the event should be skipped (not displayed)
