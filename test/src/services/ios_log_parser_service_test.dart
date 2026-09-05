@@ -41,6 +41,34 @@ void main() {
       expect(result?.eventName, equals('purchase'));
     });
 
+    test('should parse event logged confirmation params block', () {
+      const logLine =
+          '[FirebaseAnalytics][I-ACS023072] Event logged. Event name, '
+          'event params: test_event, {\n'
+          '    bool = true;\n'
+          '    double = 42;\n'
+          '    ga_event_origin (_o) = app;\n'
+          '    string = string;\n'
+          '}';
+
+      final result = parser.parse(logLine);
+
+      expect(result, isNotNull);
+      expect(result?.eventName, equals('test_event'));
+      expect(result?.parameters['bool'], equals('true'));
+      expect(result?.parameters['double'], equals('42'));
+      expect(result?.parameters['ga_event_origin'], equals('app'));
+      expect(result?.parameters['string'], equals('string'));
+    });
+
+    test('does not parse incomplete event logged header as name event', () {
+      const logLine =
+          '[FirebaseAnalytics][I-ACS023072] Event logged. Event name, '
+          'event params:';
+
+      expect(parser.parse(logLine), isNull);
+    });
+
     test('should parse simple iOS log format without params block', () {
       const logLine = '[FirebaseAnalytics][I-ACS023051] Logging event: app, '
           'add_to_cart';

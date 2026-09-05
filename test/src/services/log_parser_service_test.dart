@@ -209,6 +209,20 @@ void main() {
       expect(result.parameters['ga_previous_screen'], equals('LoginScreen'));
     });
 
+    test('strips GA4 debug shortcode from Android event names', () {
+      const logLine =
+          '09-10 15:41:35.626  3815 28115 V FA-SVC  : Logging event: '
+          'origin=auto,name=screen_view(_vs),params=Bundle[{'
+          'ga_screen=HomeScreen, ga_screen_class=HomeActivity}]';
+
+      final result = parser.parse(logLine);
+
+      expect(result, isNotNull);
+      expect(result!.eventName, equals('screen_view'));
+      expect(result.parameters['ga_screen'], equals('HomeScreen'));
+      expect(result.parameters['ga_screen_class'], equals('HomeActivity'));
+    });
+
     test('should parse native Firebase event with origin=firebase', () {
       const logLine =
           '09-10 15:41:35.626  3815 28115 I FA      : Logging event: '

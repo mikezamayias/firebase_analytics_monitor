@@ -21,6 +21,8 @@ const _promptDirectory = '.local/changelog';
 const _llmTimeout = Duration(minutes: 2);
 const maxPromptCharacters = 12000;
 const _supportedLlms = {'codex', 'claude'};
+const _rootPackage = 'famon';
+const _corePackage = 'famon_core';
 
 final _releaseHeadingPattern = RegExp(r'^## \[[^\]]+\].*$', multiLine: true);
 
@@ -66,15 +68,25 @@ List<String> validateChangelogSection(
     r'^## \[' + RegExp.escape(version) + r'\].*$',
     multiLine: true,
   ).firstMatch(section)?.group(0);
+  final hasCompareLink = headingLine?.contains(expectedCompare) == true ||
+      RegExp(
+        r'^\[' +
+            RegExp.escape(version) +
+            r'\]:\s*' +
+            RegExp.escape(expectedCompare) +
+            r'\s*$',
+        multiLine: true,
+      ).hasMatch(section);
 
   if (headingLine == null) {
     errors.add('Missing heading for $version.');
   }
-  if (headingLine == null || !headingLine.contains(expectedCompare)) {
+  if (!hasCompareLink) {
     errors.add('Missing heading compare link $expectedCompare.');
   }
   if (headingLine == null ||
-      !RegExp(r'\(\d{4}-\d{2}-\d{2}\)').hasMatch(headingLine)) {
+      !RegExp(r'(\(\d{4}-\d{2}-\d{2}\)|-\s+\d{4}-\d{2}-\d{2})')
+          .hasMatch(headingLine)) {
     errors.add('Missing heading date in YYYY-MM-DD format.');
   }
   if (!RegExp(
@@ -119,7 +131,11 @@ String buildPrompt({
   required List<String> commits,
   required List<String> pullRequests,
   required bool coreChanged,
+  String? corePreviousTag,
+  String? coreCurrentTag,
 }) {
+  final effectiveCorePreviousTag = corePreviousTag ?? previousTag;
+  final effectiveCoreCurrentTag = coreCurrentTag ?? currentTag;
   final today = DateTime.now().toIso8601String().split('T').first;
   final buffer = StringBuffer()
     ..writeln('Draft public changelog sections for famon release $version.')
@@ -129,10 +145,16 @@ String buildPrompt({
     ..writeln()
     ..writeln('Root changelog target: CHANGELOG.md')
     ..writeln('Core changelog target: packages/famon_core/CHANGELOG.md')
-    ..writeln('Previous tag: $previousTag')
-    ..writeln('Current tag: $currentTag')
+    ..writeln('Root previous tag: $previousTag')
+    ..writeln('Root current tag: $currentTag')
+    ..writeln('Core previous tag: $effectiveCorePreviousTag')
+    ..writeln('Core current tag: $effectiveCoreCurrentTag')
     ..writeln('Release date: $today')
-    ..writeln('Compare link: $_repoUrl/compare/$previousTag...$currentTag')
+    ..writeln('Root compare link: $_repoUrl/compare/$previousTag...$currentTag')
+    ..writeln(
+      'Core compare link: '
+      '$_repoUrl/compare/$effectiveCorePreviousTag...$effectiveCoreCurrentTag',
+    )
     ..writeln()
     ..writeln('Rules:')
     ..writeln('- Keep entries short and user-facing.')
@@ -146,8 +168,8 @@ String buildPrompt({
     )
     ..writeln('- Do not invent changes.')
     ..writeln(
-      '- Include a ## [$version]($_repoUrl/compare/$previousTag...$currentTag) '
-      '($today) heading for each section.',
+      '- Include a ## [$version] - $today heading and a reference compare link '
+      'for each section.',
     )
     ..writeln(
       '- If famon_core has no functional changes, write: No functional '
@@ -307,12 +329,16 @@ class _ChangelogContext {
   const _ChangelogContext({
     required this.previousTag,
     required this.currentTag,
+    required this.corePreviousTag,
+    required this.coreCurrentTag,
     required this.coreChanged,
     required this.prompt,
   });
 
   final String previousTag;
   final String currentTag;
+  final String corePreviousTag;
+  final String coreCurrentTag;
   final bool coreChanged;
   final String prompt;
 }
@@ -342,15 +368,19 @@ String? _extractReleaseSection(String content, String version) {
 }
 
 Future<_ChangelogContext> _loadContext(String version) async {
-  final previousTag = await _previousTag();
-  final currentTag = 'v$version';
+  final previousTag = await _previousTag(_rootPackage);
+  final currentTag = '$_rootPackage-v$version';
+  final corePreviousTag = await _previousTag(_corePackage);
+  final coreCurrentTag = '$_corePackage-v$version';
   final commits = await _commits(previousTag);
   final pullRequests = await _pullRequests(previousTag);
-  final coreChanged = await _coreChanged(previousTag);
+  final coreChanged = await _coreChanged(corePreviousTag);
   final prompt = buildPrompt(
     version: version,
     previousTag: previousTag,
     currentTag: currentTag,
+    corePreviousTag: corePreviousTag,
+    coreCurrentTag: coreCurrentTag,
     commits: commits,
     pullRequests: pullRequests,
     coreChanged: coreChanged,
@@ -358,6 +388,8 @@ Future<_ChangelogContext> _loadContext(String version) async {
   return _ChangelogContext(
     previousTag: previousTag,
     currentTag: currentTag,
+    corePreviousTag: corePreviousTag,
+    coreCurrentTag: coreCurrentTag,
     coreChanged: coreChanged,
     prompt: prompt,
   );
@@ -402,8 +434,8 @@ Future<void> _draft(
   final coreErrors = validateChangelogSection(
     draft.coreSection,
     version: version,
-    previousTag: context.previousTag,
-    currentTag: context.currentTag,
+    previousTag: context.corePreviousTag,
+    currentTag: context.coreCurrentTag,
     coreChanged: context.coreChanged,
     isCoreChangelog: true,
   );
@@ -420,9 +452,11 @@ Future<void> _draft(
 }
 
 Future<void> _validateFiles(String version) async {
-  final previousTag = await _previousTag();
-  final currentTag = 'v$version';
-  final coreChanged = await _coreChanged(previousTag);
+  final previousTag = await _previousTag(_rootPackage);
+  final currentTag = '$_rootPackage-v$version';
+  final corePreviousTag = await _previousTag(_corePackage);
+  final coreCurrentTag = '$_corePackage-v$version';
+  final coreChanged = await _coreChanged(corePreviousTag);
   final root =
       _extractReleaseSection(File('CHANGELOG.md').readAsStringSync(), version);
   final core = _extractReleaseSection(
@@ -452,8 +486,8 @@ Future<void> _validateFiles(String version) async {
       validateChangelogSection(
         core,
         version: version,
-        previousTag: previousTag,
-        currentTag: currentTag,
+        previousTag: corePreviousTag,
+        currentTag: coreCurrentTag,
         coreChanged: coreChanged,
         isCoreChangelog: true,
       ),
@@ -491,12 +525,27 @@ Future<String> _writePromptFile(
   return path;
 }
 
-Future<String> _previousTag() async {
-  final tag = await _runGit(['describe', '--tags', '--abbrev=0']);
-  if (tag.isEmpty) {
-    throw const ChangelogToolException('No previous release tag found.');
+Future<String> _previousTag(String package) async {
+  final packageTags = await _runGit([
+    'tag',
+    '--list',
+    '$package-v*',
+    '--sort=-version:refname',
+  ]);
+  if (packageTags.isNotEmpty) {
+    return packageTags.split('\n').first;
   }
-  return tag;
+
+  final legacyTags = await _runGit([
+    'tag',
+    '--list',
+    'v*',
+    '--sort=-version:refname',
+  ]);
+  if (legacyTags.isEmpty) {
+    throw ChangelogToolException('No previous release tag found for $package.');
+  }
+  return legacyTags.split('\n').first;
 }
 
 Future<List<String>> _commits(String previousTag) async {

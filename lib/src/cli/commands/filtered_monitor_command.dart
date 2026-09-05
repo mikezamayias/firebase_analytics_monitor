@@ -177,7 +177,7 @@ class FilteredMonitorCommand extends Command<int> {
     final customParamMap = _parseCustomParameters(customParams);
 
     _logger
-      ..info('🔍 ${lightCyan.wrap('Advanced Firebase Analytics Monitor')}')
+      ..info('🔍 ${lightCyan.wrap('Firebase Analytics Monitor')}')
       ..info('📊 Using database-based filtering...');
 
     if (showOnlyParamNames.isNotEmpty) {

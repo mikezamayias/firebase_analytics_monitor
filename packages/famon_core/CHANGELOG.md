@@ -22,6 +22,20 @@ track — all planned breaking changes are batched into `famon_core 2.0.0`.
 
 <!-- Add entries under: ### Added / Changed / Deprecated / Removed / Fixed / Security -->
 
+## [1.5.2] - 2026-06-02
+
+[1.5.2]: https://github.com/mikezamayias/famon/compare/famon_core-v1.5.1...famon_core-v1.5.2
+
+### Fixed
+
+- `MonitoringPipeline` buffers multi-line iOS Firebase Analytics log blocks
+  (`Logging event:` and `Event logged.`) so split simulator lines parse with
+  full parameters instead of name-only fragments.
+- `IosLogParserService`: multiline `Event logged.` confirmation blocks
+  (Pattern 3) and name-only fallback (Pattern 3b).
+- `LogParserService`: strip GA4 debug shortcodes from Android event names
+  (e.g. `screen_view(_vs)` → `screen_view`).
+
 ## [1.5.1] - 2026-05-24
 
 First release on the decoupled tag scheme — this version tags as
