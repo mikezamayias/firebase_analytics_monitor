@@ -22,7 +22,7 @@ track — all planned breaking changes are batched into `famon_core 2.0.0`.
 
 <!-- Add entries under: ### Added / Changed / Deprecated / Removed / Fixed / Security -->
 
-## [1.5.2] - 2026-06-02
+## [1.5.2] - 2026-09-05
 
 [1.5.2]: https://github.com/mikezamayias/famon/compare/famon_core-v1.5.1...famon_core-v1.5.2
 

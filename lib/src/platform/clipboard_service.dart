@@ -26,11 +26,11 @@ class ClipboardService implements ClipboardInterface {
   Future<bool> copy(String text) async {
     try {
       if (Platform.isMacOS) {
-        return _copyMacOS(text);
+        return await _copyMacOS(text);
       } else if (Platform.isLinux) {
-        return _copyLinux(text);
+        return await _copyLinux(text);
       } else if (Platform.isWindows) {
-        return _copyWindows(text);
+        return await _copyWindows(text);
       }
       return false;
     } on Exception catch (e) {
@@ -43,11 +43,11 @@ class ClipboardService implements ClipboardInterface {
   Future<String?> paste() async {
     try {
       if (Platform.isMacOS) {
-        return _pasteMacOS();
+        return await _pasteMacOS();
       } else if (Platform.isLinux) {
-        return _pasteLinux();
+        return await _pasteLinux();
       } else if (Platform.isWindows) {
-        return _pasteWindows();
+        return await _pasteWindows();
       }
       return null;
     } on Exception catch (e) {
