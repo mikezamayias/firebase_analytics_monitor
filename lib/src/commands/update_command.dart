@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:famon/src/command_runner.dart';
 import 'package:famon/src/version.dart';
+import 'package:famon/src/version_utils.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
@@ -42,8 +43,7 @@ class UpdateCommand extends Command<int> {
     }
     updateCheckProgress.complete('Checked for updates');
 
-    final isUpToDate = packageVersion == latestVersion;
-    if (isUpToDate) {
+    if (!isNewerVersion(latestVersion, packageVersion)) {
       _logger.info('CLI is already at the latest version.');
       return ExitCode.success.code;
     }

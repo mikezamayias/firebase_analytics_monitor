@@ -89,6 +89,26 @@ All notable changes to this project will be documented in this file.
       expect(errors, isEmpty);
     });
 
+    test('accepts reference-style compare links and dash dates', () {
+      final errors = changelog.validateChangelogSection(
+        '''
+## [1.5.2] - 2026-06-02
+
+[1.5.2]: https://github.com/mikezamayias/famon/compare/famon-v1.5.1...famon-v1.5.2
+
+### Fixed
+- Improved release safety.
+''',
+        version: '1.5.2',
+        previousTag: 'famon-v1.5.1',
+        currentTag: 'famon-v1.5.2',
+        coreChanged: false,
+        isCoreChangelog: false,
+      );
+
+      expect(errors, isEmpty);
+    });
+
     test('rejects placeholders and internal noise', () {
       final errors = changelog.validateChangelogSection(
         '''
@@ -176,6 +196,8 @@ All notable changes to this project will be documented in this file.
 
       expect(prompt, contains('CHANGELOG.md'));
       expect(prompt, contains('packages/famon_core/CHANGELOG.md'));
+      expect(prompt, contains('Root compare link'));
+      expect(prompt, contains('Core compare link'));
       expect(prompt, contains('abc123 fix: improve release safety'));
       expect(prompt, contains('No functional changes'));
       expect(prompt, contains('Do not mention Codacy'));

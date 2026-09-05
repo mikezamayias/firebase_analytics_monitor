@@ -22,6 +22,19 @@ output-format change, or runtime behavior change).
 
 <!-- Add entries under: ### Added / Changed / Deprecated / Removed / Fixed / Security -->
 
+## [1.5.2] - 2026-06-02
+
+[1.5.2]: https://github.com/mikezamayias/famon/compare/famon-v1.5.1...famon-v1.5.2
+
+### Changed
+
+- Monitor banner text simplified to "Firebase Analytics Monitor".
+
+### Fixed
+
+- iOS Simulator monitoring now parses split Firebase Analytics log blocks
+  with full parameters (via `famon_core` 1.5.2 pipeline buffering fix).
+
 ## [1.5.1] - 2026-05-24
 
 First release on the decoupled tag scheme — this version tags as

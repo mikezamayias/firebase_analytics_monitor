@@ -1,6 +1,13 @@
 # macOS
 .DS_Store
 
+# Python demo tooling
+__pycache__/
+*.pyc
+
+# Git worktrees (local release isolation)
+.worktrees/
+
 # Firebase
 firebase-debug.log
 
