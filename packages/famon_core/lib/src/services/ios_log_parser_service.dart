@@ -1,13 +1,7 @@
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
 import 'package:famon_core/src/models/platform_type.dart';
-import 'package:famon_core/src/services/interfaces/log_parser_interface.dart';
-import 'package:mason_logger/mason_logger.dart';
-
-// Relative import: Codacy's analyzer cannot resolve newly-added
-// `package:famon_core/src/...` self-references in PR diffs even though
-// the local Dart analyzer accepts them.
-// ignore: always_use_package_imports
-import 'shared/item_array_parser.dart';
+import 'package:famon_core/src/services/shared/base_log_parser_service.dart';
+import 'package:famon_core/src/services/shared/item_array_parser.dart';
 
 /// Service for parsing Firebase Analytics log lines from iOS console output.
 ///
@@ -41,28 +35,34 @@ import 'shared/item_array_parser.dart';
 /// - Module identifier: `[FirebaseAnalytics]` instead of FA tag
 /// - Log codes: `[I-ACS023051]` format
 ///
-/// ## Performance Considerations
-///
-/// - All patterns are pre-compiled (`static final`) to avoid compilation
-///   overhead
-/// - Early termination check for `FirebaseAnalytics` or `FIRAnalytics` markers
-/// - Pattern order optimization reduces average number of regex evaluations
-class IosLogParserService implements LogParserInterface {
+/// The marker check, pattern loop, params scan, and items scan live in
+/// [BaseLogParserService]. This class supplies the iOS patterns, the
+/// timestamp extraction, and the value cleaning.
+class IosLogParserService extends BaseLogParserService {
   /// Creates a new IosLogParserService
   ///
   /// [logger] - Optional logger for reporting parsing errors
-  IosLogParserService({Logger? logger}) : _logger = logger;
+  IosLogParserService({super.logger});
 
   @override
   PlatformType get platform => PlatformType.iosSimulator;
 
-  /// The logger instance used for reporting parsing errors.
-  final Logger? _logger;
+  @override
+  String get platformLabel => 'iOS';
+
+  @override
+  List<String> get faMarkers => _faMarkers;
+
+  @override
+  List<RegExp> get logPatterns => _logPatterns;
+
+  @override
+  List<RegExp> get paramPatterns => _paramPatterns;
+
+  @override
+  String get itemOpenToken => '{';
 
   /// Set of markers that indicate a line may contain Firebase Analytics data.
-  ///
-  /// Used for early termination optimization to skip lines that cannot
-  /// possibly match any iOS Firebase patterns.
   static const _faMarkers = [
     'FirebaseAnalytics',
     'FIRAnalytics',
@@ -86,7 +86,7 @@ class IosLogParserService implements LogParserInterface {
       dotAll: true,
     ),
 
-    // Pattern 1b: Truncated variant — no closing } (line was cut)
+    // Pattern 1b: Truncated variant, no closing } (line was cut)
     RegExp(
       r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Logging event:.*params:\s*\w+,\s*(\w+)(?:\s*\([^)]*\))?,?\s*\{(.+)',
       multiLine: true,
@@ -162,7 +162,7 @@ class IosLogParserService implements LogParserInterface {
   );
   static final RegExp _timeOnlyPattern = RegExp(r'(\d{2}:\d{2}:\d{2}\.\d+)');
 
-  // Pre-compiled patterns for _cleanValue (avoids hot path compilation)
+  // Pre-compiled patterns for cleanValue (avoids hot path compilation)
   static final RegExp _surroundingDoubleQuotesPattern = RegExp(r'^"|"$');
   static final RegExp _surroundingSingleQuotesPattern = RegExp(r"^'|'$");
   static final RegExp _surroundingParenthesesPattern = RegExp(r'^\(|\)$');
@@ -170,54 +170,19 @@ class IosLogParserService implements LogParserInterface {
   static final RegExp _surroundingBracesPattern = RegExp(r'^{|}$');
   static final RegExp _trailingSemicolonPattern = RegExp(r';$');
 
-  @override
-  AnalyticsEvent? parse(String logLine) {
-    if (logLine.isEmpty) return null;
-
-    // Early termination: skip lines that don't contain any iOS FA markers.
-    if (!_containsFaMarker(logLine)) {
-      return null;
-    }
-
-    // Evaluate patterns in order of expected frequency.
-    for (final regex in _logPatterns) {
-      final match = regex.firstMatch(logLine);
-      if (match != null) {
-        return _createAnalyticsEvent(match, logLine);
-      }
-    }
-
-    return null;
-  }
-
-  /// Check if the log line contains any iOS FA-related markers.
-  bool _containsFaMarker(String line) {
-    for (final marker in _faMarkers) {
-      if (line.contains(marker)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /// Create AnalyticsEvent from regex match
-  AnalyticsEvent _createAnalyticsEvent(RegExpMatch match, String fullLine) {
+  @override
+  AnalyticsEvent createAnalyticsEvent(RegExpMatch match, String fullLine) {
     final eventName = match.group(1) ?? 'unknown_event';
     final paramsString = match.groupCount >= 2 ? match.group(2) ?? '' : '';
 
-    // Extract timestamp from line if present
-    final timestamp = _extractTimestamp(fullLine);
-
-    final params = _parseParams(paramsString);
-    // Parse items from the full line to avoid losing data when the regex
-    // capture truncates nested braces inside the items array.
-    final items = _parseItems(fullLine);
-
     return AnalyticsEvent.fromParsedLog(
-      rawTimestamp: timestamp,
+      rawTimestamp: _extractTimestamp(fullLine),
       eventName: eventName,
-      parameters: params,
-      items: items,
+      parameters: parseParams(paramsString),
+      // Parse items from the full line to avoid losing data when the regex
+      // capture truncates nested braces inside the items array.
+      items: parseItems(fullLine),
     );
   }
 
@@ -227,16 +192,12 @@ class IosLogParserService implements LogParserInterface {
   /// - `2024-01-15 10:30:45.123+0000`
   /// - `10:30:45.123`
   /// - No timestamp at all
-  ///
-  /// Uses pre-compiled static patterns for performance.
   String _extractTimestamp(String line) {
-    // Try to extract ISO-style timestamp using pre-compiled pattern
     final isoMatch = _isoTimestampPattern.firstMatch(line);
     if (isoMatch != null) {
       return isoMatch.group(1) ?? '';
     }
 
-    // Try to extract time-only timestamp using pre-compiled pattern
     final timeMatch = _timeOnlyPattern.firstMatch(line);
     if (timeMatch != null) {
       return timeMatch.group(1) ?? '';
@@ -252,142 +213,23 @@ class IosLogParserService implements LogParserInterface {
         '${now.millisecond.toString().padLeft(3, '0')}';
   }
 
-  /// Parse parameter string from iOS Firebase Analytics format
-  Map<String, String> _parseParams(String paramsString) {
-    final params = <String, String>{};
+  /// Trims the block and strips the items array so item fields do not bleed
+  /// into top-level params.
+  @override
+  String normalizeParamsString(String paramsString) =>
+      ItemArrayParser.stripIosItemsArray(paramsString.trim(), _itemsKeyPattern);
 
-    if (paramsString.isEmpty) {
-      return params;
-    }
+  @override
+  bool hasItemsArray(String paramsString) =>
+      _itemsKeyPattern.hasMatch(paramsString);
 
-    try {
-      // Clean the params string and strip items array to prevent item fields
-      // from bleeding into top-level params.
-      final cleanParamsString = _stripItemsArray(paramsString.trim());
-
-      // Use pre-compiled static patterns for better performance
-      for (final pattern in _paramPatterns) {
-        final matches = pattern.allMatches(cleanParamsString);
-        for (final match in matches) {
-          if (match.groupCount >= 2) {
-            final key = match.group(1)?.trim();
-            final value = match.group(2)?.trim();
-
-            if (key != null &&
-                value != null &&
-                key.isNotEmpty &&
-                value.isNotEmpty) {
-              // Skip items parameter as it's handled separately
-              if (key.toLowerCase() != 'items') {
-                params[key] = _cleanValue(value);
-              }
-            }
-          }
-        }
-      }
-    } on FormatException catch (e, stackTrace) {
-      _logger?.warn(
-        'iOS parameter parsing failed (FormatException): $e. '
-        'Some event parameters may be missing.',
-      );
-      _logger?.detail('Stack trace: $stackTrace');
-      _logger?.detail('Input: $paramsString');
-    } on Exception catch (e, stackTrace) {
-      _logger?.warn(
-        'iOS parameter parsing failed: $e. '
-        'Some event parameters may be missing.',
-      );
-      _logger?.detail('Stack trace: $stackTrace');
-      _logger?.detail('Input: $paramsString');
-    }
-
-    return params;
-  }
-
-  /// Parse items array from iOS Firebase Analytics format
-  List<Map<String, String>> _parseItems(String paramsString) {
-    final items = <Map<String, String>>[];
-
-    if (paramsString.isEmpty || !_itemsKeyPattern.hasMatch(paramsString)) {
-      return items;
-    }
-
-    try {
-      final itemsString = _extractItemsSubstring(paramsString);
-      if (itemsString == null) return items;
-
-      // Extract individual {...} items using a depth-aware scan so that nested
-      // {...} content is handled correctly (a regex using [^}]+ would stop at
-      // the first '}' inside a nested object).
-      var i = 0;
-      while (i < itemsString.length) {
-        final braceStart = itemsString.indexOf('{', i);
-        if (braceStart == -1) break;
-
-        var depth = 1;
-        var endBrace = -1;
-
-        for (var j = braceStart + 1; j < itemsString.length; j++) {
-          final ch = itemsString[j];
-          if (ch == '{') {
-            depth++;
-          } else if (ch == '}') {
-            depth--;
-            if (depth == 0) {
-              endBrace = j;
-              break;
-            }
-          }
-        }
-
-        if (endBrace == -1) {
-          // Truncated item (no matching '}'): stop; don't include partial data.
-          break;
-        }
-
-        final itemContent = itemsString.substring(braceStart + 1, endBrace);
-        i = endBrace + 1;
-
-        if (itemContent.isNotEmpty) {
-          final itemParams = _parseParams(itemContent);
-          if (itemParams.isNotEmpty) {
-            items.add(itemParams);
-          }
-        }
-      }
-    } on Exception catch (e, stackTrace) {
-      _logger?.warn(
-        'iOS items array parsing failed: $e. '
-        'Item data may be incomplete.',
-      );
-      _logger?.detail('Stack trace: $stackTrace');
-      _logger?.detail('Input: $paramsString');
-    }
-
-    return items;
-  }
-
-  /// Removes the items array from a params string if present.
-  ///
-  /// Delegates to [ItemArrayParser.stripIosItemsArray]; see that helper
-  /// for the depth-tracking + truncation semantics shared with the
-  /// Android parser. The iOS key regex `_itemsKeyPattern` is passed in
-  /// so the helper can locate the array without recompiling the regex.
-  String _stripItemsArray(String paramsString) =>
-      ItemArrayParser.stripIosItemsArray(paramsString, _itemsKeyPattern);
-
-  /// Extracts the items array substring, bounded by the matching `]`.
-  ///
-  /// Delegates to [ItemArrayParser.extractIosItemsSubstring]; see that
-  /// helper for the depth-tracking + truncation semantics shared with
-  /// the Android parser.
-  String? _extractItemsSubstring(String paramsString) =>
+  @override
+  String? extractItemsSubstring(String paramsString) =>
       ItemArrayParser.extractIosItemsSubstring(paramsString, _itemsKeyPattern);
 
   /// Clean and normalize parameter values.
-  ///
-  /// Uses pre-compiled static patterns for performance.
-  String _cleanValue(String value) {
+  @override
+  String cleanValue(String value) {
     // Unwrap typed wrappers
     final wrapperMatch = _iosValueWrapperPattern.firstMatch(value.trim());
     final v = wrapperMatch != null ? (wrapperMatch.group(1) ?? value) : value;
