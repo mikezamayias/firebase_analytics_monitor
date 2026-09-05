@@ -28,7 +28,7 @@ jobs:
     name: Verify version sources agree
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Cross-check three version sources
         run: |
           set -euo pipefail
@@ -57,7 +57,7 @@ jobs:
     name: dart pub publish --dry-run (famon_core)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
         with:
           sdk: "3.11.0"
@@ -74,7 +74,7 @@ jobs:
     name: dart pub publish --dry-run (famon)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
         with:
           sdk: "3.11.0"
@@ -87,7 +87,7 @@ jobs:
     name: Run famon_core example
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
         with:
           sdk: "3.11.0"
