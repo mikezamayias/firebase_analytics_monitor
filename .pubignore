@@ -5,6 +5,10 @@
 .todos/
 .vscode/
 .worktrees/
+assets/
+build/
+AGENTS.md
+CLAUDE.md
 docs/
 packages/
 tasks/

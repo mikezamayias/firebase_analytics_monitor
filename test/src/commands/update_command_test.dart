@@ -13,7 +13,7 @@ import '../../helpers/test_helpers.dart';
 class _MockProgress extends Mock implements Progress {}
 
 void main() {
-  const latestVersion = '0.0.0';
+  const latestVersion = '999.0.0';
 
   group('update', () {
     late PubUpdater pubUpdater;
@@ -167,6 +167,26 @@ void main() {
         () => logger.info('CLI is already at the latest version.'),
       ).called(1);
       verifyNever(() => logger.progress('Updating to $latestVersion'));
+      verifyNever(
+        () => pubUpdater.update(
+          packageName: any(named: 'packageName'),
+          versionConstraint: any(named: 'versionConstraint'),
+        ),
+      );
+    });
+
+    test('does not downgrade when pub.dev has an older version', () async {
+      when(
+        () => pubUpdater.getLatestVersion(any()),
+      ).thenAnswer((_) async => '1.5.1');
+      when(() => logger.progress(any())).thenReturn(_MockProgress());
+
+      final result = await commandRunner.run(['update']);
+
+      expect(result, equals(ExitCode.success.code));
+      verify(
+        () => logger.info('CLI is already at the latest version.'),
+      ).called(1);
       verifyNever(
         () => pubUpdater.update(
           packageName: any(named: 'packageName'),

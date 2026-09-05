@@ -22,7 +22,7 @@ class _MockLogParserFactory extends Mock implements LogParserFactory {}
 
 class _MockLogParser extends Mock implements LogParserInterface {}
 
-const latestVersion = '0.0.0';
+const latestVersion = '999.0.0';
 
 final updatePrompt =
     // We need to ignore this lint in order to match the exact message format.
@@ -69,6 +69,17 @@ void main() {
       final result = await commandRunner.run(['--version']);
       expect(result, equals(ExitCode.success.code));
       verify(() => logger.info(updatePrompt)).called(1);
+    });
+
+    test('does not show update message when pub.dev has an older version',
+        () async {
+      when(
+        () => pubUpdater.getLatestVersion(any()),
+      ).thenAnswer((_) async => '1.5.1');
+
+      final result = await commandRunner.run(['--version']);
+      expect(result, equals(ExitCode.success.code));
+      verifyNever(() => logger.info(updatePrompt));
     });
 
     test('shows error message when failed to check for updates', () async {

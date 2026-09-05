@@ -28,23 +28,13 @@ jobs:
         id: parse
         env:
           GIT_REF: ${{ github.ref }}
-          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-
-          # workflow_dispatch runs land here with a branch ref (e.g.
-          # refs/heads/dev), not a tag. We cannot derive a package or
-          # version from a branch — bail clearly so operators know to
-          # push a tag instead.
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "::error::workflow_dispatch is not supported. Push a famon-v*, famon_core-v*, or v* tag instead so the publish workflow can derive package + version."
-            exit 1
-          fi
 
           case "$GIT_REF" in
             refs/tags/*) TAG="${GIT_REF#refs/tags/}" ;;
             *)
-              echo "::error::Expected refs/tags/* ref, got: $GIT_REF"
+              echo "::error::Expected refs/tags/* ref, got: $GIT_REF. Dispatch this workflow with --ref <package-tag>."
               exit 1
               ;;
           esac
@@ -87,7 +77,7 @@ jobs:
           read_pubspec() { grep "^version:" "$1" | sed 's/version: //' | tr -d ' '; }
           read_dart_const() { grep "packageVersion" "$1" | sed "s/.*= '\([^']*\)'.*/\1/"; }
           read_core_dep() {
-            grep -E "^[[:space:]]+famon_core:\s*\^" pubspec.yaml \
+            grep -E "^[[:space:]]+famon_core:[[:space:]]*\^" pubspec.yaml \
               | sed "s/.*famon_core:[[:space:]]*\^//" \
               | tr -d ' '
           }
@@ -171,29 +161,40 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260  # v1.7.2
+      - name: Read famon_core dependency
+        id: core_dep
+        run: |
+          set -euo pipefail
+          CORE_VERSION="$(grep -E "^[[:space:]]+famon_core:[[:space:]]*\^" pubspec.yaml \
+            | sed "s/.*famon_core:[[:space:]]*\^//" \
+            | tr -d ' ')"
+          if [ -z "$CORE_VERSION" ]; then
+            echo "::error::Could not read famon_core dependency from pubspec.yaml"
+            exit 1
+          fi
+          echo "version=$CORE_VERSION" >> "$GITHUB_OUTPUT"
       - name: Wait for pub.dev to index famon_core
-        if: needs.detect.outputs.package == 'both'
         env:
-          VER: ${{ needs.detect.outputs.version }}
+          CORE_VERSION: ${{ steps.core_dep.outputs.version }}
         run: |
           set -euo pipefail
 
           MAX_ATTEMPTS=30
           SLEEP=10
 
-          echo "Polling pub.dev for famon_core@$VER (max ${MAX_ATTEMPTS} attempts, ${SLEEP}s apart)..."
+          echo "Polling pub.dev for famon_core@$CORE_VERSION (max ${MAX_ATTEMPTS} attempts, ${SLEEP}s apart)..."
           for i in $(seq 1 "$MAX_ATTEMPTS"); do
             if curl --fail --silent --show-error \
                 "https://pub.dev/api/packages/famon_core" \
-                | grep -q "\"version\":\"$VER\""; then
-              echo "famon_core@$VER is live on pub.dev (attempt $i)."
+                | grep -q "\"version\":\"$CORE_VERSION\""; then
+              echo "famon_core@$CORE_VERSION is live on pub.dev (attempt $i)."
               exit 0
             fi
-            echo "Attempt $i: famon_core@$VER not yet indexed. Sleeping ${SLEEP}s."
+            echo "Attempt $i: famon_core@$CORE_VERSION not yet indexed. Sleeping ${SLEEP}s."
             sleep "$SLEEP"
           done
 
-          echo "::error::famon_core@$VER was not indexed on pub.dev within $((MAX_ATTEMPTS * SLEEP))s. famon CLI publish aborted to avoid resolving the wrong famon_core version."
+          echo "::error::famon_core@$CORE_VERSION was not indexed on pub.dev within $((MAX_ATTEMPTS * SLEEP))s. famon CLI publish aborted to avoid resolving the wrong famon_core version."
           exit 1
       - name: Install dependencies
         run: dart pub get
