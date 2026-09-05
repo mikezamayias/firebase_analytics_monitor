@@ -179,7 +179,10 @@ fi
 STATE="$(gh pr view "$PR_NUMBER" \
   --json mergeStateStatus,mergeable \
   --jq '"\(.mergeStateStatus)/\(.mergeable)"')"
-if [[ "$STATE" != "CLEAN/MERGEABLE" ]]; then
+# UNSTABLE means a non-required check failed. The required checks were
+# already waited on above, so a stray status from a third-party app must
+# not block the release.
+if [[ "$STATE" != "CLEAN/MERGEABLE" && "$STATE" != "UNSTABLE/MERGEABLE" ]]; then
   echo "PR #$PR_NUMBER is not mergeable: $STATE" >&2
   echo "Resolve threads or conflicts on the PR, then re-run this script." >&2
   exit 1
