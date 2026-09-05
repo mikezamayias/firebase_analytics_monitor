@@ -1,6 +1,13 @@
 # macOS
 .DS_Store
 
+# Python demo tooling
+__pycache__/
+*.pyc
+
+# Git worktrees (local release isolation)
+.worktrees/
+
 # Firebase
 firebase-debug.log
 
@@ -33,6 +40,8 @@ libisar.dylib
 .local/
 .todos/
 TODO.md
+PLAN.md
+docs/superpowers/plans/
 agent_errors.jsonl
 command_usage.jsonl
 

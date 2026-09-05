@@ -1,14 +1,9 @@
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
 import 'package:famon_core/src/models/platform_type.dart';
 import 'package:famon_core/src/services/interfaces/log_parser_interface.dart';
+import 'package:famon_core/src/services/shared/base_log_parser_service.dart';
+import 'package:famon_core/src/services/shared/item_array_parser.dart';
 import 'package:injectable/injectable.dart';
-import 'package:mason_logger/mason_logger.dart';
-
-// Relative import: Codacy's analyzer cannot resolve newly-added
-// `package:famon_core/src/...` self-references in PR diffs even though
-// the local Dart analyzer accepts them.
-// ignore: always_use_package_imports
-import 'shared/item_array_parser.dart';
 
 /// Service for parsing Firebase Analytics log lines from adb logcat output.
 ///
@@ -36,38 +31,35 @@ import 'shared/item_array_parser.dart';
 ///    `-v time` (`V FA-SVC  :`, `V FA  :`) logcat output formats.
 /// 5. **Basic/legacy formats** - Older or simplified log formats.
 ///
-/// ### Early Termination Optimization
-///
-/// Before evaluating any regex patterns, the parser performs a quick string
-/// containment check for common FA-related markers (`FA`, `Logging event`,
-/// `Event`). Lines that do not contain any of these markers are immediately
-/// rejected, avoiding unnecessary regex evaluations for the majority of
-/// logcat lines that are not Firebase Analytics related.
-///
-/// ### Performance Considerations
-///
-/// - All patterns are pre-compiled (`static final`) to avoid compilation
-///   overhead
-/// - Early termination check uses simple string containment (O(n) but fast)
-/// - Pattern order optimization reduces average number of regex evaluations
-/// - Failed matches short-circuit to the next pattern immediately
+/// The marker check, pattern loop, params scan, and items scan live in
+/// [BaseLogParserService]. This class supplies the Android patterns, the
+/// Bundle wrapper handling, and the value cleaning.
 @Injectable(as: LogParserInterface)
-class LogParserService implements LogParserInterface {
+class LogParserService extends BaseLogParserService {
   /// Creates a new LogParserService
   ///
   /// [logger] - Optional logger for reporting parsing errors
-  LogParserService({Logger? logger}) : _logger = logger;
+  LogParserService({super.logger});
 
   @override
   PlatformType get platform => PlatformType.android;
 
-  /// The logger instance used for reporting parsing errors.
-  final Logger? _logger;
+  @override
+  String get platformLabel => 'Android';
+
+  @override
+  List<String> get faMarkers => _faMarkers;
+
+  @override
+  List<RegExp> get logPatterns => _logPatterns;
+
+  @override
+  List<RegExp> get paramPatterns => _paramPatterns;
+
+  @override
+  String get itemOpenToken => 'Bundle[{';
 
   /// Set of markers that indicate a line may contain Firebase Analytics data.
-  ///
-  /// Used for early termination optimization to skip lines that cannot
-  /// possibly match any FA patterns.
   static const _faMarkers = ['FA', 'Logging event', 'Event logged'];
 
   /// Regex patterns for different Firebase Analytics log formats.
@@ -158,8 +150,6 @@ class LogParserService implements LogParserInterface {
   /// Pre-compiled regex patterns for parameter parsing.
   ///
   /// These patterns handle various Firebase Analytics Bundle parameter formats.
-  /// Stored as static final to avoid regex compilation overhead on each
-  /// `_parseParams()` call.
   static final List<RegExp> _paramPatterns = [
     // Standard key=value format
     RegExp(r'(\w+)=([^,\[\]{}]+)(?=[,\]}]|$)'),
@@ -197,164 +187,91 @@ class LogParserService implements LogParserInterface {
   /// Maximum allowed length for a Firebase parameter value.
   static const int _maxParamValueLength = 100;
 
-  @override
-  AnalyticsEvent? parse(String logLine) {
-    if (logLine.isEmpty) return null;
-
-    // Early termination: skip lines that don't contain any FA-related markers.
-    // This optimization avoids running expensive regex patterns on the vast
-    // majority of logcat lines that are not Firebase Analytics related.
-    if (!_containsFaMarker(logLine)) {
-      return null;
-    }
-
-    // Evaluate patterns in order of expected frequency.
-    // Short-circuits on first successful match with a valid event name.
-    for (final regex in _logPatterns) {
-      final match = regex.firstMatch(logLine);
-      if (match != null) {
-        final event = _createAnalyticsEvent(match);
-        if (event != null) return event;
-      }
-    }
-
-    // Special handling for FA warnings about invalid default parameter types
-    final warn = _faInvalidDefaultParamPattern.firstMatch(logLine);
-    if (warn != null) {
-      return _createFaInvalidDefaultParamEvent(warn);
-    }
-
-    return null;
-  }
-
-  /// Check if the log line contains any FA-related markers.
-  ///
-  /// This is a fast preliminary check to avoid running regex patterns on
-  /// lines that cannot possibly match.
-  bool _containsFaMarker(String line) {
-    for (final marker in _faMarkers) {
-      if (line.contains(marker)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /// Create AnalyticsEvent from regex match.
   ///
   /// Returns `null` if the captured event name does not conform to the
   /// Firebase naming convention (`^[a-zA-Z][a-zA-Z0-9_]*$`, max 40 chars),
   /// dropping malformed or potentially malicious log lines.
-  AnalyticsEvent? _createAnalyticsEvent(RegExpMatch match) {
+  @override
+  AnalyticsEvent? createAnalyticsEvent(RegExpMatch match, String fullLine) {
     final timestamp = match.group(1)!;
-    final eventName = match.group(2)!;
+    // GA4 debug logcat appends internal shortcodes: "screen_view(_vs)",
+    // "user_engagement(_e)", etc. Strip before validation.
+    final eventName = _stripGa4DebugShortcode(match.group(2)!);
 
     if (!_isValidEventName(eventName)) {
-      _logger?.warn('Skipping invalid Firebase event name: "$eventName"');
+      logger?.warn('Skipping invalid Firebase event name: "$eventName"');
       return null;
     }
 
     final paramsString = match.groupCount >= 3 ? match.group(3) ?? '' : '';
 
-    final params = _parseParams(paramsString);
-    final items = _parseItems(paramsString);
-
     return AnalyticsEvent.fromParsedLog(
       rawTimestamp: timestamp,
       eventName: eventName,
-      parameters: params,
-      items: items,
+      parameters: parseParams(paramsString),
+      items: parseItems(paramsString),
     );
   }
 
-  /// Create a synthetic AnalyticsEvent for FA invalid default param warnings
-  AnalyticsEvent _createFaInvalidDefaultParamEvent(RegExpMatch match) {
-    final timestamp = match.group(1)!;
-    final paramName = match.group(2)!.trim();
-    final paramValue = match.group(3)!.trim();
+  /// Special handling for FA warnings about invalid default parameter types.
+  @override
+  AnalyticsEvent? parseUnmatched(String logLine) {
+    final warn = _faInvalidDefaultParamPattern.firstMatch(logLine);
+    if (warn == null) return null;
 
     return AnalyticsEvent.fromParsedLog(
-      rawTimestamp: timestamp,
+      rawTimestamp: warn.group(1)!,
       eventName: 'fa_invalid_default_param',
-      parameters: {paramName: _cleanValue(paramValue)},
+      parameters: {warn.group(2)!.trim(): cleanValue(warn.group(3)!.trim())},
     );
   }
 
-  /// Parse parameter string from Firebase Analytics Bundle format
-  Map<String, String> _parseParams(String paramsString) {
-    final params = <String, String>{};
+  static String _stripGa4DebugShortcode(String eventName) {
+    final shortcodeStart = eventName.lastIndexOf('(_');
+    if (shortcodeStart <= 0 || !eventName.endsWith(')')) return eventName;
 
-    if (paramsString.isEmpty) {
-      return params;
+    for (var i = shortcodeStart + 2; i < eventName.length - 1; i++) {
+      final codeUnit = eventName.codeUnitAt(i);
+      final isAsciiLetter = (codeUnit >= 65 && codeUnit <= 90) ||
+          (codeUnit >= 97 && codeUnit <= 122);
+      if (!isAsciiLetter) return eventName;
     }
 
-    try {
-      // Clean the params string first
-      var cleanParamsString = paramsString;
-      if (cleanParamsString.startsWith('Bundle[{')) {
-        cleanParamsString = cleanParamsString.substring(8);
-      }
-      if (cleanParamsString.endsWith('}]')) {
-        cleanParamsString = cleanParamsString.substring(
-          0,
-          cleanParamsString.length - 2,
-        );
-      }
-
-      // Remove items array so item_* fields don't bleed into top-level params.
-      cleanParamsString = _stripItemsArray(cleanParamsString);
-
-      // Use pre-compiled static patterns for better performance
-      for (final pattern in _paramPatterns) {
-        final matches = pattern.allMatches(cleanParamsString);
-        for (final match in matches) {
-          if (match.groupCount >= 2) {
-            final key = match.group(1)?.trim();
-            final value = match.group(2)?.trim();
-
-            if (key != null &&
-                value != null &&
-                key.isNotEmpty &&
-                value.isNotEmpty) {
-              // Skip items parameter as it's handled separately
-              if (key.toLowerCase() != 'items') {
-                params[key] = _cleanValue(value);
-              }
-            }
-          }
-        }
-      }
-
-      // If we didn't get many params, try a more aggressive approach
-      if (params.length < 3 && cleanParamsString.isNotEmpty) {
-        _parseParamsAggressive(cleanParamsString, params);
-      }
-    } on FormatException catch (e, stackTrace) {
-      _logger?.warn(
-        'Parameter parsing failed (FormatException): $e. '
-        'Some event parameters may be missing.',
-      );
-      _logger?.detail('Stack trace: $stackTrace');
-      _logger?.detail('Input: $paramsString');
-    } on Exception catch (e, stackTrace) {
-      _logger?.warn(
-        'Parameter parsing failed: $e. '
-        'Some event parameters may be missing.',
-      );
-      _logger?.detail('Stack trace: $stackTrace');
-      _logger?.detail('Input: $paramsString');
-    }
-
-    return params;
+    return eventName.substring(0, shortcodeStart);
   }
 
-  /// Removes the items array from a Bundle params string if present.
-  ///
-  /// Delegates to [ItemArrayParser.stripAndroidItemsArray]; see that
-  /// helper for the depth-tracking + truncation semantics shared with
-  /// the iOS parser.
-  String _stripItemsArray(String paramsString) =>
-      ItemArrayParser.stripAndroidItemsArray(paramsString);
+  /// Strips the `Bundle[{` ... `}]` wrapper and the items array.
+  @override
+  String normalizeParamsString(String paramsString) {
+    var clean = paramsString;
+    if (clean.startsWith('Bundle[{')) {
+      clean = clean.substring(8);
+    }
+    if (clean.endsWith('}]')) {
+      clean = clean.substring(0, clean.length - 2);
+    }
+    // Remove items array so item_* fields don't bleed into top-level params.
+    return ItemArrayParser.stripAndroidItemsArray(clean);
+  }
+
+  /// If the pattern scan found few params, try a looser split on commas.
+  @override
+  void afterParamScan(String cleanParamsString, Map<String, String> params) {
+    if (params.length < 3 && cleanParamsString.isNotEmpty) {
+      _parseParamsAggressive(cleanParamsString, params);
+    }
+  }
+
+  @override
+  bool hasItemsArray(String paramsString) => paramsString.contains('items=');
+
+  @override
+  String? extractItemsSubstring(String paramsString) =>
+      ItemArrayParser.extractAndroidItemsSubstring(paramsString);
+
+  @override
+  String wrapItemContent(String itemContent) => 'Bundle[{$itemContent}]';
 
   /// More aggressive parameter parsing for complex formats
   void _parseParamsAggressive(String paramsString, Map<String, String> params) {
@@ -384,91 +301,11 @@ class LogParserService implements LogParserInterface {
             !value.startsWith('[') &&
             !value.startsWith('{') &&
             key.toLowerCase() != 'items') {
-          params[key] = _cleanValue(value);
+          params[key] = cleanValue(value);
         }
       }
     }
   }
-
-  /// Parse items array from Firebase Analytics Bundle format
-  List<Map<String, String>> _parseItems(String paramsString) {
-    final items = <Map<String, String>>[];
-
-    if (paramsString.isEmpty || !paramsString.contains('items=')) {
-      return items;
-    }
-
-    try {
-      final itemsString = _extractItemsSubstring(paramsString);
-      if (itemsString == null) return items;
-
-      // Extract individual Bundle[{...}] items using a depth-aware scan so
-      // that nested Bundle[{...}] content is handled correctly (a regex using
-      // [^}]+ would stop at the first '}' inside a nested bundle).
-      var i = 0;
-      while (i < itemsString.length) {
-        final bundleStart = itemsString.indexOf('Bundle[{', i);
-        if (bundleStart == -1) break;
-
-        // Index of the '{' in 'Bundle[{' (+7 to skip past 'Bundle[')
-        final braceStart = bundleStart + 7;
-        var depth = 1;
-        var endBrace = -1;
-
-        for (var j = braceStart + 1; j < itemsString.length; j++) {
-          final ch = itemsString[j];
-          if (ch == '{') {
-            depth++;
-          } else if (ch == '}') {
-            depth--;
-            if (depth == 0) {
-              endBrace = j;
-              break;
-            }
-          }
-        }
-
-        if (endBrace == -1) {
-          // Truncated item (no matching '}'): stop; don't include partial data.
-          break;
-        }
-
-        final itemContent = itemsString.substring(braceStart + 1, endBrace);
-        i = endBrace + 1;
-
-        if (itemContent.isNotEmpty) {
-          final itemParams = _parseParams('Bundle[{$itemContent}]');
-          if (itemParams.isNotEmpty) {
-            items.add(itemParams);
-          }
-        }
-      }
-    } on FormatException catch (e, stackTrace) {
-      _logger?.warn(
-        'Items array parsing failed (FormatException): $e. '
-        'Item data may be incomplete.',
-      );
-      _logger?.detail('Stack trace: $stackTrace');
-      _logger?.detail('Input: $paramsString');
-    } on Exception catch (e, stackTrace) {
-      _logger?.warn(
-        'Items array parsing failed: $e. '
-        'Item data may be incomplete.',
-      );
-      _logger?.detail('Stack trace: $stackTrace');
-      _logger?.detail('Input: $paramsString');
-    }
-
-    return items;
-  }
-
-  /// Extracts the items array substring, bounded by the matching `]`.
-  ///
-  /// Delegates to [ItemArrayParser.extractAndroidItemsSubstring]; see
-  /// that helper for the depth-tracking + truncation semantics shared
-  /// with the iOS parser.
-  String? _extractItemsSubstring(String paramsString) =>
-      ItemArrayParser.extractAndroidItemsSubstring(paramsString);
 
   /// Returns true if [name] conforms to Firebase event name conventions.
   bool _isValidEventName(String name) =>
@@ -484,7 +321,8 @@ class LogParserService implements LogParserInterface {
   ///    string.
   /// 3. Iterate the remaining characters once: skip ASCII control characters
   ///    and stop after [_maxParamValueLength] characters have been written.
-  String _cleanValue(String value) {
+  @override
+  String cleanValue(String value) {
     // Unwrap typed wrappers: String(...), Long(...), Double(...), Boolean(...)
     final wrapperMatch = _typedWrapperPattern.firstMatch(value.trim());
     final raw = wrapperMatch != null ? (wrapperMatch.group(1) ?? value) : value;
