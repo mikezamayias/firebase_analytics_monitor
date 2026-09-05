@@ -9,6 +9,7 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:famon/src/cli/commands/database_command.dart' as _i892;
 import 'package:famon/src/cli/commands/filtered_monitor_command.dart' as _i796;
 import 'package:famon/src/commands/issue_command.dart' as _i742;
