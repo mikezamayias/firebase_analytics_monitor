@@ -34,11 +34,11 @@ class FileDialogService implements FileDialogInterface {
   }) async {
     try {
       if (Platform.isMacOS) {
-        return _showMacOSDialog(defaultFileName, initialDirectory);
+        return await _showMacOSDialog(defaultFileName, initialDirectory);
       } else if (Platform.isLinux) {
-        return _showLinuxDialog(defaultFileName, initialDirectory);
+        return await _showLinuxDialog(defaultFileName, initialDirectory);
       } else if (Platform.isWindows) {
-        return _showWindowsDialog(defaultFileName, initialDirectory);
+        return await _showWindowsDialog(defaultFileName, initialDirectory);
       }
       // Fallback to terminal prompt
       return promptForPath(defaultFileName: defaultFileName);
