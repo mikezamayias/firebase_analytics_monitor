@@ -78,6 +78,34 @@ class MonitoringPipeline {
   static bool isFirebaseRelatedLogLine(String line) =>
       _firebaseRelatedPattern.hasMatch(line);
 
+  /// Matches the first line of a multi-line iOS Firebase Analytics event.
+  ///
+  /// `log stream --style compact` prints the event header and then emits each
+  /// parameter on its own indented line until a closing `}`. Buffering those
+  /// lines keeps the parser from emitting name-only events.
+  static final RegExp _iosEventBlockStartPattern = RegExp(
+    r'\[FirebaseAnalytics\]\[I-ACS\d+\].*'
+    r'(Logging event:|Event logged\.).*\{\s*$',
+  );
+
+  /// Returns true when [line] starts a multi-line iOS Analytics event block.
+  static bool _startsIosEventBlock(String line) =>
+      _iosEventBlockStartPattern.hasMatch(line);
+
+  /// Returns the net curly-brace delta for [line].
+  static int _iosEventBlockBraceDelta(String line) {
+    var delta = 0;
+    for (var i = 0; i < line.length; i++) {
+      final codeUnit = line.codeUnitAt(i);
+      if (codeUnit == 123) {
+        delta++;
+      } else if (codeUnit == 125) {
+        delta--;
+      }
+    }
+    return delta;
+  }
+
   /// Consume [stdout] line-by-line and emit a [LogEventProcessResult]
   /// to [onResult] for every parsed event and (when [verbose] is on)
   /// every raw Firebase Analytics / Crashlytics chatter line.
@@ -103,6 +131,30 @@ class MonitoringPipeline {
     var malformedByteCount = 0;
     var lastMalformedWarning = DateTime.now();
 
+    var iosEventBlock = StringBuffer();
+    var bufferingIosEventBlock = false;
+    var iosEventBlockDepth = 0;
+
+    Future<bool> emitLine(String line) async {
+      // Verbose: surface the raw line for Firebase chatter independent
+      // of whether the same line also parses to an event below.
+      if (verbose && isFirebaseRelatedLogLine(line)) {
+        final keepGoing = await onResult(LogVerboseResult(line));
+        if (!keepGoing) return false;
+      }
+
+      // Parse only; filtering, caching, and display are caller
+      // concerns (see class-level dartdoc).
+      final eventResult = processor.processLine(line);
+
+      if (eventResult is LogEventResult) {
+        final keepGoing = await onResult(eventResult);
+        if (!keepGoing) return false;
+      }
+
+      return true;
+    }
+
     await for (final line in stdout
         .transform(const Utf8Decoder(allowMalformed: true))
         .transform(const LineSplitter())) {
@@ -120,21 +172,47 @@ class MonitoringPipeline {
         }
       }
 
-      // Verbose: surface the raw line for Firebase chatter independent
-      // of whether the same line also parses to an event below.
-      if (verbose && isFirebaseRelatedLogLine(line)) {
-        final keepGoing = await onResult(LogVerboseResult(line));
-        if (!keepGoing) return;
+      if (bufferingIosEventBlock) {
+        if (_startsIosEventBlock(line)) {
+          final keepGoing =
+              await emitLine(iosEventBlock.toString().trimRight());
+          if (!keepGoing) return;
+          iosEventBlock
+            ..clear()
+            ..writeln(line);
+          iosEventBlockDepth = _iosEventBlockBraceDelta(line);
+          continue;
+        }
+
+        iosEventBlock.writeln(line);
+        iosEventBlockDepth += _iosEventBlockBraceDelta(line);
+        if (iosEventBlockDepth <= 0) {
+          final keepGoing =
+              await emitLine(iosEventBlock.toString().trimRight());
+          iosEventBlock = StringBuffer();
+          bufferingIosEventBlock = false;
+          iosEventBlockDepth = 0;
+          if (!keepGoing) return;
+        }
+        continue;
       }
 
-      // Parse only; filtering, caching, and display are caller
-      // concerns (see class-level dartdoc).
-      final eventResult = processor.processLine(line);
-
-      if (eventResult is LogEventResult) {
-        final keepGoing = await onResult(eventResult);
-        if (!keepGoing) return;
+      if (_startsIosEventBlock(line)) {
+        iosEventBlock
+          ..clear()
+          ..writeln(line);
+        bufferingIosEventBlock = true;
+        iosEventBlockDepth = _iosEventBlockBraceDelta(line);
+        continue;
       }
+
+      if (!await emitLine(line)) {
+        return;
+      }
+    }
+
+    if (bufferingIosEventBlock) {
+      await emitLine(iosEventBlock.toString().trimRight());
     }
   }
 }
