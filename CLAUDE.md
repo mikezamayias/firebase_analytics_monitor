@@ -8,7 +8,7 @@
 
 When fixing a bug or adding a feature in one platform's log parser, apply the same change to every other platform parser.
 
-1. **Bug fixes are cross-platform by default.** A parsing fix in `LogParserService` (Android) must be mirrored in `IosLogParserService` (iOS), and vice versa.
+1. **Bug fixes are cross-platform by default.** The marker check, pattern loop, params scan, and items scan live once in `BaseLogParserService`; fix them there. A fix in a platform hook of `LogParserService` (Android) must be mirrored in `IosLogParserService` (iOS), and vice versa.
 2. **Test coverage must match.** If a test case is added for one parser (e.g. items array truncation), an equivalent test must exist for the other parser(s).
 3. **Output format is platform-agnostic.** `EventFormatterService` receives `AnalyticsEvent` objects — `eventName`, `parameters`, `items`, and `rawTimestamp` must be populated consistently regardless of source platform.
 4. **New parsing capabilities require all-platform implementation.** Do not ship a feature (e.g. items array parsing) for only one platform.
@@ -65,9 +65,9 @@ class LogParserService {
 
 Hot paths where this matters:
 
-- `LogParserService.parse()` - called for every logcat line
-- `LogParserService._parseParams()` - called for every event
-- `LogParserService._cleanValue()` - called for every parameter value
+- `BaseLogParserService.parse()` - called for every log line
+- `BaseLogParserService.parseParams()` - called for every event
+- `cleanValue()` in each parser - called for every parameter value
 - `LogTimestampParser.parseTimestamp()` - called for every event
 
 ### Stream Processing
@@ -185,9 +185,8 @@ dart run build_runner build --delete-conflicting-outputs
 - Main branch: `dev`
 - Feature branches: `feature/<name>`
 - Release branches: merge `dev` to `main`, tag with version
-- PR review bot: use Codacy. Ignore CodeRabbit comments/checks unless the user
-  explicitly asks to revisit them; CodeRabbit is no longer part of this repo's
-  review workflow.
+- No external PR review bot. Codacy and CodeRabbit were removed from this
+  repo's checks; ignore any leftover comments from either.
 
 ## Security Guidelines
 

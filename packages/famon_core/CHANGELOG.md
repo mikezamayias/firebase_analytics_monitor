@@ -26,6 +26,12 @@ track — all planned breaking changes are batched into `famon_core 2.0.0`.
 
 [1.5.2]: https://github.com/mikezamayias/famon/compare/famon_core-v1.5.1...famon_core-v1.5.2
 
+### Changed
+
+- `LogParserService` and `IosLogParserService` now extend an internal
+  `BaseLogParserService` that owns the marker check, pattern loop, params
+  scan, and items scan. No public API change.
+
 ### Fixed
 
 - `MonitoringPipeline` buffers multi-line iOS Firebase Analytics log blocks
