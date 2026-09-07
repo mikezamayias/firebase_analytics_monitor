@@ -7,6 +7,15 @@
 
 CLI tool for real-time monitoring of Firebase Analytics events from Android and iOS.
 
+## What's new in 1.5.2
+
+The fix: iOS Simulator sometimes splits a Firebase Analytics event across several log lines.
+famon now buffers the block and prints the event with all its parameters, as it does on Android.
+
+Also: clipboard and file dialog failures are caught instead of escaping, and the two parsers now share one base, so the parsing loop exists once instead of twice.
+
+Full notes in the [changelog](CHANGELOG.md).
+
 ## Features
 
 - Stream events as they happen
