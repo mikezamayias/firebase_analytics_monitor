@@ -27,7 +27,7 @@ jobs:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d  # v1.19.2
 
   build:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d  # v1.19.2
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@0d81600dd37bc87a473ee5b6e2293bef05751b04  # v1.20.1
     with:
       dart_sdk: "3.11.0"
       setup: "dart run build_runner build --delete-conflicting-outputs"
@@ -35,7 +35,7 @@ jobs:
 
   build-core:
     name: Analyze + format + test (famon_core)
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@c2e27845f65775943bc310b3ab89e5c5432b8d4d  # v1.19.2
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@0d81600dd37bc87a473ee5b6e2293bef05751b04  # v1.20.1
     with:
       dart_sdk: "3.11.0"
       working_directory: packages/famon_core
